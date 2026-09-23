@@ -25,6 +25,10 @@ RUN npm run build
 FROM builder AS migrator
 CMD ["npm", "run", "db:migrate:deploy"]
 
+FROM builder AS worker
+ENV NODE_ENV=production
+CMD ["npm", "run", "worker:search"]
+
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production

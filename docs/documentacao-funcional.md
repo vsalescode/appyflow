@@ -23,10 +23,11 @@ cadastro público, equipes, cobrança ou envio automático de candidaturas.
 | Preferências profissionais | disponível |
 | Geração de queries de busca | disponível |
 | Integração de busca com Serper | adapter disponível |
-| Normalização e deduplicação de vagas | serviços internos disponíveis |
-| Dashboard de vagas e matching | ainda não disponível |
-| Pipeline de candidaturas | ainda não disponível |
-| Currículo personalizado e PDF | ainda não disponível |
+| Normalização e deduplicação de vagas | disponível pelo worker |
+| Dashboard de vagas e matching | disponível |
+| Pipeline de candidaturas | disponível |
+| Currículo personalizado e PDF | disponível pela API e histórico |
+| Execução manual do pipeline de busca | disponível pelo worker |
 | Busca diária automática | ainda não disponível |
 
 ## Jornada atual
@@ -169,17 +170,14 @@ servidor e não aparecem nas telas.
 
 ## Limitações atuais
 
-A base de descoberta existe, mas ainda não há uma experiência completa que
-execute todas as queries, apresente vagas e calcule compatibilidade. Também não
-estão disponíveis:
+O pipeline completo de busca pode ser executado manualmente pelo operador da
+instalação. Ainda não estão disponíveis:
 
-- filtros e ranking de oportunidades;
-- explicação de matching;
-- estados de candidatura;
-- geração de currículo adaptado por vaga;
-- compilação e download de currículo personalizado;
-- execução diária automática;
-- priorização ou bloqueio manual de fontes.
+- execução automática diária e configuração de horário;
+- histórico das execuções de busca;
+- priorização ou bloqueio manual de fontes;
+- segundo provider de busca ou IA;
+- deploy documentado no Render.
 
 Essas limitações são apresentadas explicitamente para que uma pessoa avaliando o
 repositório não confunda arquitetura preparada com funcionalidade pronta.
@@ -198,6 +196,6 @@ currículo + perfil + preferências
   -> acompanhamento da candidatura
 ```
 
-Matching será apresentado como aderência aos critérios conhecidos, nunca como
-probabilidade de contratação. Conteúdo de currículo gerado deverá permanecer
-apoiado em fatos confirmados pela pessoa usuária.
+Matching é apresentado como aderência aos critérios conhecidos, nunca como
+probabilidade de contratação. Conteúdo de currículo gerado permanece apoiado em
+fatos confirmados pela pessoa usuária.

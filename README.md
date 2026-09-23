@@ -3,10 +3,9 @@
 Sistema open source, self-hosted e single-user para descoberta inteligente de
 vagas e preparação de candidaturas.
 
-O projeto está no início do desenvolvimento. A fundação técnica, a autenticação
-single-user, o currículo mestre e a edição manual do perfil profissional já estão
-disponíveis; busca, matching e geração de currículos serão adicionados
-incrementalmente.
+O repositório já contém autenticação single-user, currículo mestre, perfil,
+preferências, descoberta e matching de vagas, pipeline de candidaturas e geração
+bilíngue de currículos em LaTeX e PDF. A automação diária ainda será adicionada.
 
 ## Requisitos
 
@@ -76,14 +75,13 @@ preferências ainda não informadas e não devem eliminar vagas em etapas futura
 Em `/queries`, o sistema gera consultas determinísticas usando o perfil e as
 preferências. Quando o provider de IA está habilitado, também pode sugerir um
 conjunto pequeno de consultas estruturadas. Todas são normalizadas, deduplicadas
-por perfil e registradas para uso posterior; nenhuma busca externa é executada
-nesta etapa.
+por perfil e registradas para execução pelo worker de busca.
 
 O primeiro adapter de busca disponível é o Serper. Para habilitá-lo, configure
 `SEARCH_PROVIDER=serper` e `SEARCH_API_KEY`. O adapter usa timeout, repete uma vez
 somente em falhas transitórias, limita cada página a dez resultados e não expõe a
-chave em mensagens de erro. A execução e persistência das buscas serão conectadas
-ao fluxo de descoberta nas próximas etapas.
+chave em mensagens de erro. O worker conecta o adapter à normalização,
+deduplicação, filtragem, matching e persistência das vagas.
 
 Os resultados do contrato de busca podem ser convertidos para o modelo interno de
 vaga, com título, empresa, descrição, localização, modalidade, URL, fonte, data
@@ -97,8 +95,27 @@ une a mesma oportunidade por perfil quando existem sinais suficientes, enquanto
 
 Em `/fontes`, cada domínio descoberto apresenta provider, classificação, primeira
 e última observação, total de ocorrências e vagas únicas. Snapshots imutáveis
-preservam a evolução dessas métricas; a pontuação de qualidade será calculada em
-uma etapa posterior.
+preservam a evolução dessas métricas, e uma pontuação determinística classifica a
+qualidade observada da fonte.
+
+## Worker de busca
+
+Com PostgreSQL e Serper configurados, execute manualmente um ciclo completo:
+
+```powershell
+npm run worker:search
+```
+
+No Docker Compose, o worker é um serviço opcional e não inicia junto da aplicação:
+
+```powershell
+docker compose --profile worker run --rm worker
+```
+
+As queries são processadas sequencialmente. Uma falha isolada não impede as
+demais buscas; o resumo é emitido como JSON e o processo retorna código diferente
+de zero quando alguma etapa falha. A execução automática por horário ainda não
+está disponível.
 
 ## Docker Compose
 
@@ -106,9 +123,10 @@ uma etapa posterior.
 docker compose up --build
 ```
 
-O Compose inicia a aplicação e o PostgreSQL. A integração da aplicação com o
-banco é configurada automaticamente e as migrations são aplicadas antes do
-servidor iniciar.
+O Compose inicia a aplicação e o PostgreSQL. A integração com o banco é
+configurada automaticamente e as migrations são aplicadas antes do servidor
+iniciar. O serviço `worker` é executado somente quando solicitado pelo profile
+correspondente.
 
 Para encerrar os containers sem remover os dados:
 
@@ -178,9 +196,13 @@ valores seguros para desenvolvimento.
 
 ```text
 src/app/            interface e endpoints HTTP
+src/application/    casos de uso e contratos internos
+src/domain/         regras determinísticas do domínio
 src/infrastructure/ integrações técnicas, incluindo PostgreSQL
 src/server/         configuração e serviços server-side
+src/worker/         entrypoints dos processos de background
 prisma/             schema e migrations versionadas
+templates/          templates oficiais de currículo
 docs/               documentação funcional e técnica
 public/             assets públicos
 ```

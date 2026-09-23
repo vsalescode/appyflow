@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  SearchProviderError,
-  SerperSearchProvider,
-} from "./serper-search-provider";
+import { SearchProviderError } from "@/application/providers/search-provider";
+
+import { SerperSearchProvider } from "./serper-search-provider";
 
 describe("SerperSearchProvider", () => {
   it("envia a busca autenticada e traduz resultados orgânicos", async () => {

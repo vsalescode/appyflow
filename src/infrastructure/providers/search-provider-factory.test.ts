@@ -16,12 +16,12 @@ describe("getSearchProvider", () => {
     ).toBe("serper");
   });
 
-  it("rejeita providers sem adapter", () => {
-    expect(() =>
+  it("cria o adapter da SerpApi", () => {
+    expect(
       getSearchProvider({
         SEARCH_PROVIDER: "serpapi",
         SEARCH_API_KEY: "secret",
-      }),
-    ).toThrow("ainda não possui adapter");
+      })?.name,
+    ).toBe("serpapi");
   });
 });

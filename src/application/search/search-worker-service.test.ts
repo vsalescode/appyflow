@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SearchProvider } from "@/application/providers/search-provider";
-import { SearchProviderError } from "@/infrastructure/providers/serper-search-provider";
+import {
+  SearchProviderError,
+  type SearchProvider,
+} from "@/application/providers/search-provider";
 
 import { runSearchWorker } from "./search-worker-service";
 

@@ -115,8 +115,9 @@ significa executar uma busca completa ou disponibilizar vagas no dashboard.
 
 ## Descoberta e tratamento de vagas
 
-O repositório já contém a base interna para receber resultados de um provider de
-busca. O primeiro adapter disponível é o Serper.
+O repositório contém adapters para receber resultados do Serper ou da SerpApi. A
+instalação escolhe um deles por configuração, e o restante do fluxo recebe o mesmo
+formato interno independentemente do serviço selecionado.
 
 Quando um resultado é processado, o sistema pode normalizar:
 
@@ -175,7 +176,6 @@ O pipeline completo pode ser executado manualmente ou diariamente pelo scheduler
 Horário, fuso, ativação e limites são configurados em `/preferencias`, onde também
 fica o histórico recente. Ainda não estão disponíveis:
 
-- segundo provider de busca ou IA;
 - deploy documentado no Render.
 
 Essas limitações são apresentadas explicitamente para que uma pessoa avaliando o

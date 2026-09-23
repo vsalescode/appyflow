@@ -2,8 +2,8 @@ import type {
   SearchProvider,
   SearchResultItem,
 } from "@/application/providers/search-provider";
+import { SearchProviderError } from "@/application/providers/search-provider";
 import { getPrismaClient } from "@/infrastructure/database/prisma";
-import { SearchProviderError } from "@/infrastructure/providers/serper-search-provider";
 
 import { calculateAndStoreDeterministicMatches } from "./deterministic-matching-service";
 import {

@@ -36,4 +36,12 @@ describe("LocalArtifactStorage", () => {
       storage.write("../escape.pdf", new Uint8Array([1])),
     ).rejects.toThrow("Chave de armazenamento inválida.");
   });
+
+  it("armazena artefatos tex", async () => {
+    const storage = new LocalArtifactStorage(directory);
+    const key = "0199a5f0-cafe-7000-8000-000000000000.tex";
+    const bytes = new TextEncoder().encode("\\documentclass{article}");
+    await storage.write(key, bytes);
+    await expect(storage.read(key)).resolves.toEqual(bytes);
+  });
 });

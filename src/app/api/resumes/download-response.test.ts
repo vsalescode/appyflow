@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { downloadResponse } from "./route";
+import { downloadResponse } from "./download-response";
 
 describe("download de currículo compilado", () => {
   it("envia PDF como anexo privado", async () => {

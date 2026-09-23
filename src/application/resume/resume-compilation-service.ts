@@ -42,7 +42,9 @@ export function renderResumeTexArtifact(request: ResumeRenderingRequest) {
 
   return {
     language: rendered.language,
+    templateKey: rendered.templateKey,
     templatePath: rendered.templatePath,
+    templateChecksum: rendered.templateChecksum,
     tex: {
       fileName: pdfFileName.replace(/\.pdf$/i, ".tex"),
       mediaType: "application/x-tex",

@@ -40,6 +40,8 @@ describe("compilação de currículo", () => {
     );
 
     expect(result.language).toBe("PT_BR");
+    expect(result.templateKey).toBe("pt-br/template.tex");
+    expect(result.templateChecksum).toMatch(/^[0-9a-f]{64}$/);
     expect(result.tex.fileName).toBe("CV_JOAO_DA_SILVA.tex");
     expect(result.pdf.fileName).toBe("CV_JOAO_DA_SILVA.pdf");
     expect(result.pdf.bytes).toBe(pdf);

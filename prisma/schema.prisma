@@ -200,17 +200,36 @@ model Job {
 }
 
 model Application {
-  id          String                   @id @default(uuid()) @db.Uuid
-  jobId       String                   @unique @map("job_id") @db.Uuid
-  status      ApplicationStatus        @default(FOUND)
-  createdAt   DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
-  job         Job                      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  history     ApplicationStatusEvent[]
-  preparation ApplicationPreparation?
+  id             String                   @id @default(uuid()) @db.Uuid
+  jobId          String                   @unique @map("job_id") @db.Uuid
+  status         ApplicationStatus        @default(FOUND)
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  job            Job                      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  history        ApplicationStatusEvent[]
+  preparation    ApplicationPreparation?
+  resumeVersions ResumeVersion[]
 
   @@index([status, updatedAt])
   @@map("applications")
+}
+
+model ResumeVersion {
+  id               String         @id @default(uuid()) @db.Uuid
+  applicationId    String         @map("application_id") @db.Uuid
+  language         ResumeLanguage
+  content          Json
+  templateKey      String         @map("template_key") @db.VarChar(80)
+  templateChecksum String         @map("template_checksum") @db.Char(64)
+  texStorageKey    String         @unique @map("tex_storage_key") @db.VarChar(255)
+  texFileName      String         @map("tex_file_name") @db.VarChar(255)
+  pdfStorageKey    String         @unique @map("pdf_storage_key") @db.VarChar(255)
+  pdfFileName      String         @map("pdf_file_name") @db.VarChar(255)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  application      Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@map("resume_versions")
 }
 
 model ApplicationPreparation {

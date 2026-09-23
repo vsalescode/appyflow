@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { ArtifactStorage } from "@/application/storage/artifact-storage";
 
-const validStorageKey = /^[0-9a-f-]+\.pdf$/;
+const validStorageKey = /^[0-9a-f-]+\.(?:pdf|tex)$/;
 
 export class LocalArtifactStorage implements ArtifactStorage {
   constructor(private readonly directory: string) {}

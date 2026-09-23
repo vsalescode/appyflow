@@ -15,3 +15,8 @@ await cp(
 await cp(resolve(projectRoot, "public"), resolve(standaloneRoot, "public"), {
   recursive: true,
 });
+await cp(
+  resolve(projectRoot, "templates"),
+  resolve(standaloneRoot, "templates"),
+  { recursive: true },
+);

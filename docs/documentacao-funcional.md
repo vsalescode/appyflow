@@ -29,6 +29,7 @@ cadastro público, equipes, cobrança ou envio automático de candidaturas.
 | Currículo personalizado e PDF | disponível pela API e histórico |
 | Execução manual do pipeline de busca | disponível pelo worker |
 | Busca diária automática | disponível quando o scheduler está ativo |
+| Priorização e bloqueio de fontes | disponível em `/fontes` |
 
 ## Jornada atual
 
@@ -174,7 +175,6 @@ O pipeline completo pode ser executado manualmente ou diariamente pelo scheduler
 Horário, fuso, ativação e limites são configurados em `/preferencias`, onde também
 fica o histórico recente. Ainda não estão disponíveis:
 
-- priorização ou bloqueio manual de fontes;
 - segundo provider de busca ou IA;
 - deploy documentado no Render.
 

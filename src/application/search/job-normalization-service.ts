@@ -12,6 +12,7 @@ import { getPrismaClient } from "@/infrastructure/database/prisma";
 export interface NormalizationSummary {
   stored: number;
   rejected: number;
+  blocked: number;
 }
 
 export async function normalizeAndStoreSearchResults(
@@ -25,6 +26,8 @@ export async function normalizeAndStoreSearchResults(
   const observedAt = clock();
   const valid: NormalizedJob[] = [];
   let rejected = 0;
+  let blocked = 0;
+  let stored = 0;
   for (const item of items) {
     try {
       valid.push(normalizeSearchResult(item));
@@ -58,6 +61,10 @@ export async function normalizeAndStoreSearchResults(
         },
         update: { lastSeenAt: observedAt },
       });
+      if (source.managementStatus === "BLOCKED") {
+        blocked += 1;
+        continue;
+      }
       touchedSourceIds.add(source.id);
       const fingerprint = createJobFingerprint(job);
       const storedJob = await transaction.job.upsert({
@@ -101,6 +108,7 @@ export async function normalizeAndStoreSearchResults(
         },
         update: {},
       });
+      stored += 1;
     }
     for (const sourceId of touchedSourceIds) {
       const occurrenceCount = await transaction.jobOccurrence.count({
@@ -127,5 +135,5 @@ export async function normalizeAndStoreSearchResults(
       });
     }
   });
-  return { stored: valid.length, rejected };
+  return { stored, rejected, blocked };
 }

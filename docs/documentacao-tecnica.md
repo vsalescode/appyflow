@@ -250,6 +250,13 @@ query, fonte e instante de descoberta. O fingerprint SHA-256 usa cargo, empresa 
 localização quando os três sinais estão presentes. Quando faltam sinais, a URL
 canônica é usada para evitar uniões excessivas.
 
+Fontes possuem estado `DEFAULT`, `PRIORITIZED` ou `BLOCKED`. O estado é alterado
+somente por uma pessoa autenticada que tenha ocorrências associadas à fonte.
+Resultados vindos de uma fonte bloqueada são contabilizados, mas não criam vaga
+nem ocorrência. Vagas que só possuam fontes bloqueadas não aparecem no dashboard
+nem entram no matching. A priorização altera apenas a ordenação de apresentação,
+sem aumentar artificialmente a compatibilidade da vaga.
+
 ## Modelo de dados atual
 
 | Entidade | Responsabilidade |
@@ -323,7 +330,6 @@ não confiáveis. Eles não podem escolher ferramentas, comandos ou credenciais.
 Os seguintes componentes fazem parte da direção do produto, mas não estão no
 repositório como fluxos completos:
 
-- priorização e bloqueio manual de fontes;
 - deploy no Render;
 - observabilidade operacional completa;
 - segundo adapter de IA ou busca.

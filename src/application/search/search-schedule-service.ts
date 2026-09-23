@@ -127,6 +127,7 @@ export async function executeDueSearches(
           resultsFound: summary.results.found,
           resultsStored: summary.results.stored,
           resultsRejected: summary.results.rejected,
+          resultsBlocked: summary.results.blocked,
           jobsMatched: summary.matching.matched,
           jobsSkipped: summary.matching.skipped,
           failures: summary.failures.length

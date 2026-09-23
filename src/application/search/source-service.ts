@@ -1,5 +1,6 @@
 import { getPrismaClient } from "@/infrastructure/database/prisma";
 import { calculateSourceScore } from "@/domain/source/source-score";
+import { parseSourceManagementStatus } from "@/domain/source/source-management";
 
 export async function listDiscoveredSources(
   userId: string,
@@ -23,7 +24,33 @@ export async function listDiscoveredSources(
     }))
     .sort(
       (left, right) =>
+        managementOrder(left.managementStatus) -
+          managementOrder(right.managementStatus) ||
         right.score.value - left.score.value ||
         left.domain.localeCompare(right.domain),
     );
+}
+
+export async function updateSourceManagement(
+  userId: string,
+  sourceId: string,
+  value: unknown,
+  clock: () => Date = () => new Date(),
+) {
+  const managementStatus = parseSourceManagementStatus(value);
+  const result = await getPrismaClient().source.updateMany({
+    where: {
+      id: sourceId,
+      occurrences: { some: { job: { profile: { userId } } } },
+    },
+    data: {
+      managementStatus,
+      managedAt: managementStatus === "DEFAULT" ? null : clock(),
+    },
+  });
+  if (!result.count) throw new Error("Fonte não encontrada.");
+}
+
+function managementOrder(status: "DEFAULT" | "PRIORITIZED" | "BLOCKED") {
+  return status === "PRIORITIZED" ? 0 : status === "DEFAULT" ? 1 : 2;
 }

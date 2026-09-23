@@ -96,7 +96,9 @@ une a mesma oportunidade por perfil quando existem sinais suficientes, enquanto
 Em `/fontes`, cada domínio descoberto apresenta provider, classificação, primeira
 e última observação, total de ocorrências e vagas únicas. Snapshots imutáveis
 preservam a evolução dessas métricas, e uma pontuação determinística classifica a
-qualidade observada da fonte.
+qualidade observada da fonte. A pessoa pode priorizar um domínio, mantê-lo no
+tratamento padrão ou bloqueá-lo. Fontes bloqueadas deixam de produzir novas vagas;
+as priorizadas aparecem primeiro sem alterar o matching profissional.
 
 ## Worker de busca
 

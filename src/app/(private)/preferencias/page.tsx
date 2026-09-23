@@ -2,6 +2,10 @@ import Link from "next/link";
 
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { getPreference } from "@/application/preferences/preference-service";
+import {
+  getSearchSchedule,
+  listSearchRuns,
+} from "@/application/search/search-schedule-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +24,12 @@ const workModes = [
   ["HYBRID", "Híbrido"],
   ["ONSITE", "Presencial"],
 ] as const;
+const runStatuses = {
+  RUNNING: "Em execução",
+  COMPLETED: "Concluída",
+  PARTIAL_FAILURE: "Concluída com falhas",
+  FAILED: "Falhou",
+} as const;
 const asLines = (items: string[] | undefined) => items?.join("\n") ?? "";
 
 export default async function PreferencesPage({
@@ -28,7 +38,13 @@ export default async function PreferencesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await getUserBySessionToken(await readSessionCookie());
-  const preference = user ? await getPreference(user.id) : null;
+  const [preference, schedule, runs] = user
+    ? await Promise.all([
+        getPreference(user.id),
+        getSearchSchedule(user.id),
+        listSearchRuns(user.id, 10),
+      ])
+    : [null, null, []];
   const query = await searchParams;
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
@@ -43,11 +59,17 @@ export default async function PreferencesPage({
         para você.
       </p>
       {query.sucesso ? (
-        <p className="mt-5 text-sm text-emerald-700">Preferências salvas.</p>
+        <p className="mt-5 text-sm text-emerald-700">
+          {query.sucesso === "agendamento"
+            ? "Agendamento salvo."
+            : "Preferências salvas."}
+        </p>
       ) : null}
       {query.erro ? (
         <p className="mt-5 text-sm text-red-700">
-          Revise os campos. Salário e moeda devem ser informados juntos.
+          {query.erro === "agendamento"
+            ? "Revise horário, fuso e limites do agendamento."
+            : "Revise os campos. Salário e moeda devem ser informados juntos."}
         </p>
       ) : null}
       <form
@@ -146,6 +168,105 @@ export default async function PreferencesPage({
           Salvar preferências
         </button>
       </form>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold">Busca diária</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Configure quando o scheduler deve executar as queries cadastradas.
+        </p>
+        <form
+          action="/api/search-schedule"
+          className="mt-5 grid gap-5 rounded-2xl border bg-white p-6 sm:grid-cols-2"
+          method="post"
+        >
+          <label className="flex items-center gap-3 text-sm font-medium sm:col-span-2">
+            <input
+              defaultChecked={schedule?.enabled ?? false}
+              name="enabled"
+              type="checkbox"
+            />
+            Ativar busca diária
+          </label>
+          <label className="text-sm font-medium">
+            Horário
+            <input
+              className="mt-2 block w-full rounded-lg border p-3"
+              defaultValue={schedule?.scheduledTime ?? "09:00"}
+              name="scheduledTime"
+              required
+              type="time"
+            />
+          </label>
+          <label className="text-sm font-medium">
+            Fuso horário
+            <input
+              className="mt-2 block w-full rounded-lg border p-3"
+              defaultValue={schedule?.timeZone ?? "America/Sao_Paulo"}
+              name="timeZone"
+              required
+            />
+          </label>
+          <label className="text-sm font-medium">
+            Máximo de queries por ciclo
+            <input
+              className="mt-2 block w-full rounded-lg border p-3"
+              defaultValue={schedule?.maxQueries ?? 10}
+              max={50}
+              min={1}
+              name="maxQueries"
+              required
+              type="number"
+            />
+          </label>
+          <label className="text-sm font-medium">
+            Resultados por query
+            <input
+              className="mt-2 block w-full rounded-lg border p-3"
+              defaultValue={schedule?.resultsPerQuery ?? 10}
+              max={10}
+              min={1}
+              name="resultsPerQuery"
+              required
+              type="number"
+            />
+          </label>
+          {schedule?.nextRunAt ? (
+            <p className="text-sm text-slate-600 sm:col-span-2">
+              Próxima execução: {schedule.nextRunAt.toLocaleString("pt-BR")}
+            </p>
+          ) : null}
+          <button
+            className="w-fit rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white sm:col-span-2"
+            type="submit"
+          >
+            Salvar agendamento
+          </button>
+        </form>
+
+        <h3 className="mt-8 font-semibold">Execuções recentes</h3>
+        {runs.length ? (
+          <ol className="mt-3 space-y-3">
+            {runs.map((run) => (
+              <li
+                className="rounded-xl border bg-white p-4 text-sm"
+                key={run.id}
+              >
+                <span className="font-medium">{runStatuses[run.status]}</span>
+                {" · "}
+                {run.startedAt.toLocaleString("pt-BR")}
+                {" · "}
+                {run.queriesSucceeded}/{run.queriesTotal} queries
+                {" · "}
+                {run.resultsStored} resultados processados
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-3 text-sm text-slate-600">
+            Nenhuma execução registrada.
+          </p>
+        )}
+      </section>
     </main>
   );
 }

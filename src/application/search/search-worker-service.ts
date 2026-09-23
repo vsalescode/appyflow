@@ -18,8 +18,16 @@ interface WorkerQuery {
   country?: string;
 }
 
+export interface SearchWorkerOptions {
+  userId?: string;
+  maxQueries?: number;
+  resultsPerQuery?: number;
+}
+
 interface SearchWorkerDependencies {
-  listQueries: () => Promise<readonly WorkerQuery[]>;
+  listQueries: (
+    options: SearchWorkerOptions,
+  ) => Promise<readonly WorkerQuery[]>;
   normalize: (
     queryId: string,
     provider: string,
@@ -43,15 +51,19 @@ export interface SearchWorkerSummary {
 
 function defaultDependencies(): SearchWorkerDependencies {
   return {
-    listQueries: async () =>
+    listQueries: async (options) =>
       getPrismaClient()
         .searchQuery.findMany({
+          where: options.userId
+            ? { profile: { userId: options.userId } }
+            : undefined,
           select: {
             id: true,
             query: true,
             profile: { select: { userId: true, country: true } },
           },
           orderBy: { createdAt: "asc" },
+          take: options.maxQueries,
         })
         .then((queries) =>
           queries.map((item) => ({
@@ -69,8 +81,12 @@ function defaultDependencies(): SearchWorkerDependencies {
 export async function runSearchWorker(
   provider: SearchProvider,
   dependencies: SearchWorkerDependencies = defaultDependencies(),
+  options: SearchWorkerOptions = {},
 ): Promise<SearchWorkerSummary> {
-  const queries = await dependencies.listQueries();
+  const queries = await dependencies.listQueries(options);
+  const resultsPerQuery = options.resultsPerQuery ?? 10;
+  if (resultsPerQuery < 1 || resultsPerQuery > 10)
+    throw new Error("Limite de resultados por query inválido.");
   const summary: SearchWorkerSummary = {
     queries: { total: queries.length, succeeded: 0, failed: 0 },
     results: { found: 0, stored: 0, rejected: 0 },
@@ -85,7 +101,7 @@ export async function runSearchWorker(
         query: query.query,
         country: query.country,
         page: 1,
-        limit: 10,
+        limit: resultsPerQuery,
       });
       items = result.items;
       summary.results.found += items.length;

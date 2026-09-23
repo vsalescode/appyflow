@@ -35,6 +35,22 @@ services:
         condition: service_completed_successfully
     restart: "no"
 
+  scheduler:
+    build:
+      context: .
+      target: worker
+    profiles: ["scheduler"]
+    command: ["npm", "run", "worker:scheduler"]
+    environment:
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://appyflow:appyflow@database:5432/appyflow
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-disabled}
+      SEARCH_API_KEY: ${SEARCH_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   migrate:
     build:
       context: .

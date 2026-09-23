@@ -82,8 +82,8 @@ docs/                       documentação funcional e técnica
 public/                     arquivos públicos da aplicação
 ```
 
-Existe um worker executável sob demanda para o pipeline de busca. Ainda não há
-scheduler, fila, Redis ou microsserviços.
+Existem um worker executável sob demanda e um scheduler que consulta agendamentos
+devidos a cada minuto. Não há fila, Redis ou microsserviços.
 
 ## Execução local
 
@@ -118,8 +118,8 @@ O Compose inicia três componentes:
 - `migrate`: aplica migrations e termina;
 - `app`: inicia o servidor após a conclusão das migrations.
 
-O serviço opcional `worker` usa um target próprio da imagem e só é iniciado pelo
-profile `worker`.
+Os serviços opcionais `worker` e `scheduler` usam um target próprio da imagem e
+só são iniciados pelos profiles correspondentes.
 
 Uploads são armazenados no volume privado `artifacts-data`. O banco utiliza o
 volume `postgres-data`.
@@ -226,7 +226,11 @@ No Compose, a execução manual usa:
 docker compose --profile worker run --rm worker
 ```
 
-Essa execução ainda não possui horário, ativação ou limites configuráveis.
+O horário, fuso IANA, ativação, máximo de queries e resultados por query são
+configurados em `/preferencias`. O scheduler reivindica cada execução de forma
+atômica, calcula o próximo horário e registra status e contadores em `SearchRun`.
+Ele é iniciado com `npm run worker:scheduler` ou pelo profile `scheduler` do
+Compose.
 
 ## Normalização e deduplicação de vagas
 
@@ -263,6 +267,8 @@ canônica é usada para evitar uniões excessivas.
 | `JobMatch` | score, classificação e explicações da compatibilidade |
 | `Application` | estado atual da candidatura |
 | `ResumeVersion` | conteúdo e artefatos imutáveis do currículo personalizado |
+| `SearchSchedule` | horário, fuso, ativação e limites da busca diária |
+| `SearchRun` | histórico e resumo de cada execução agendada |
 
 O arquivo `prisma/schema.prisma` é a referência definitiva para campos,
 constraints e relações. Mudanças de banco são entregues exclusivamente por
@@ -317,8 +323,6 @@ não confiáveis. Eles não podem escolher ferramentas, comandos ou credenciais.
 Os seguintes componentes fazem parte da direção do produto, mas não estão no
 repositório como fluxos completos:
 
-- histórico de execuções do worker;
-- automação diária com horário, ativação e limites configuráveis;
 - priorização e bloqueio manual de fontes;
 - deploy no Render;
 - observabilidade operacional completa;

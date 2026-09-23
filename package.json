@@ -12,6 +12,7 @@
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "node --env-file-if-exists=.env.local .next/standalone/server.js",
     "worker:search": "tsx src/worker/search-worker.ts",
+    "worker:scheduler": "tsx src/worker/search-scheduler.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"*.{json,md,mjs,mts,ts,yaml,yml}\"",

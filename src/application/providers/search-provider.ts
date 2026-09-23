@@ -24,6 +24,16 @@ export interface SearchResult {
   requestId?: string;
 }
 
+export type SearchProviderFailure =
+  "authentication" | "rate_limit" | "timeout" | "upstream" | "invalid_response";
+
+export class SearchProviderError extends Error {
+  constructor(public readonly reason: SearchProviderFailure) {
+    super(`Falha no provider de busca: ${reason}`);
+    this.name = "SearchProviderError";
+  }
+}
+
 export interface SearchProvider {
   readonly name: string;
   search(request: SearchRequest): Promise<SearchResult>;

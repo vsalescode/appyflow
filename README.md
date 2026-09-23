@@ -77,10 +77,11 @@ preferências. Quando o provider de IA está habilitado, também pode sugerir um
 conjunto pequeno de consultas estruturadas. Todas são normalizadas, deduplicadas
 por perfil e registradas para execução pelo worker de busca.
 
-O primeiro adapter de busca disponível é o Serper. Para habilitá-lo, configure
-`SEARCH_PROVIDER=serper` e `SEARCH_API_KEY`. O adapter usa timeout, repete uma vez
-somente em falhas transitórias, limita cada página a dez resultados e não expõe a
-chave em mensagens de erro. O worker conecta o adapter à normalização,
+Os adapters de busca disponíveis são Serper e SerpApi. Configure
+`SEARCH_PROVIDER=serper` ou `SEARCH_PROVIDER=serpapi` e informe a credencial em
+`SEARCH_API_KEY`. Ambos usam timeout, repetem uma vez somente em falhas
+transitórias, limitam cada página a dez resultados e não expõem a chave em
+mensagens de erro. O worker conecta o adapter selecionado à normalização,
 deduplicação, filtragem, matching e persistência das vagas.
 
 Os resultados do contrato de busca podem ser convertidos para o modelo interno de
@@ -102,7 +103,8 @@ as priorizadas aparecem primeiro sem alterar o matching profissional.
 
 ## Worker de busca
 
-Com PostgreSQL e Serper configurados, execute manualmente um ciclo completo:
+Com PostgreSQL e um provider de busca configurados, execute manualmente um ciclo
+completo:
 
 ```powershell
 npm run worker:search
@@ -202,8 +204,8 @@ em texto puro.
 | `SEARCH_API_KEY`  | condicional | chave server-side quando a busca é habilitada               |
 
 Os providers ficam desabilitados por padrão. Os adapters disponíveis são OpenAI
-para interpretação e geração estruturada, e Serper para pesquisa. Outros nomes
-configuráveis permanecem reservados para adapters futuros.
+para interpretação e geração estruturada, além de Serper e SerpApi para pesquisa.
+Os demais nomes configuráveis permanecem reservados para adapters futuros.
 
 Nunca versione `.env` ou `.env.local`. O arquivo `.env.example` contém apenas
 valores seguros para desenvolvimento.

@@ -1,35 +1,39 @@
 import { z } from "zod";
 
-import type {
-  SearchProvider,
-  SearchRequest,
-  SearchResult,
-} from "@/application/providers/search-provider";
-import { SearchProviderError } from "@/application/providers/search-provider";
 import type { ProviderHealth } from "@/application/providers/provider-health";
-
-export { SearchProviderError };
-export type { SearchProviderFailure } from "@/application/providers/search-provider";
+import {
+  SearchProviderError,
+  type SearchProvider,
+  type SearchRequest,
+  type SearchResult,
+} from "@/application/providers/search-provider";
 
 const searchResponseSchema = z.object({
-  organic: z
+  search_metadata: z
+    .object({
+      id: z.string().min(1).optional(),
+      status: z.string().optional(),
+    })
+    .optional(),
+  organic_results: z
     .array(
       z.object({
         title: z.string().min(1),
         link: z.url(),
         snippet: z.string().optional(),
-        displayedLink: z.string().optional(),
+        displayed_link: z.string().optional(),
         date: z.string().optional(),
       }),
     )
     .optional()
     .default([]),
+  error: z.string().optional(),
 });
 
 type Fetch = typeof fetch;
 
-export class SerperSearchProvider implements SearchProvider {
-  readonly name = "serper";
+export class SerpApiSearchProvider implements SearchProvider {
+  readonly name = "serpapi";
 
   constructor(
     private readonly apiKey: string,
@@ -43,23 +47,17 @@ export class SerperSearchProvider implements SearchProvider {
     if (!Number.isInteger(page) || page < 1)
       throw new SearchProviderError("invalid_response");
 
-    const response = await this.requestWithRetry(
-      "https://google.serper.dev/search",
-      {
-        method: "POST",
-        headers: {
-          "X-API-KEY": this.apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          q: request.query.trim(),
-          gl: request.country?.toLowerCase(),
-          hl: request.language,
-          page,
-          num: request.limit,
-        }),
-      },
-    );
+    const url = new URL("https://serpapi.com/search.json");
+    url.searchParams.set("engine", "google");
+    url.searchParams.set("q", request.query.trim());
+    url.searchParams.set("api_key", this.apiKey);
+    url.searchParams.set("start", String((page - 1) * request.limit));
+    url.searchParams.set("num", String(request.limit));
+    if (request.country)
+      url.searchParams.set("gl", request.country.toLowerCase());
+    if (request.language) url.searchParams.set("hl", request.language);
+
+    const response = await this.requestWithRetry(url);
     let body: unknown;
     try {
       body = await response.json();
@@ -67,26 +65,30 @@ export class SerperSearchProvider implements SearchProvider {
       throw new SearchProviderError("invalid_response");
     }
     const parsed = searchResponseSchema.safeParse(body);
-    if (!parsed.success) throw new SearchProviderError("invalid_response");
-    const items = parsed.data.organic.slice(0, request.limit).map((item) => ({
-      title: item.title,
-      url: item.link,
-      snippet: item.snippet,
-      displayedUrl: item.displayedLink,
-      publishedAt: item.date,
-    }));
+    if (!parsed.success || parsed.data.error)
+      throw new SearchProviderError("invalid_response");
+
+    const items = parsed.data.organic_results
+      .slice(0, request.limit)
+      .map((item) => ({
+        title: item.title,
+        url: item.link,
+        snippet: item.snippet,
+        displayedUrl: item.displayed_link,
+        publishedAt: item.date,
+      }));
     return {
       items,
       nextPage: items.length === request.limit ? page + 1 : undefined,
-      requestId: response.headers.get("x-request-id") ?? undefined,
+      requestId: parsed.data.search_metadata?.id,
     };
   }
 
   async checkHealth(): Promise<ProviderHealth> {
+    const url = new URL("https://serpapi.com/account.json");
+    url.searchParams.set("api_key", this.apiKey);
     try {
-      await this.requestWithRetry("https://google.serper.dev/account", {
-        headers: { "X-API-KEY": this.apiKey },
-      });
+      await this.requestWithRetry(url);
       return { status: "available" };
     } catch (error) {
       if (error instanceof SearchProviderError)
@@ -103,11 +105,10 @@ export class SerperSearchProvider implements SearchProvider {
     }
   }
 
-  private async requestWithRetry(url: string, init: RequestInit) {
+  private async requestWithRetry(url: URL) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const response = await this.fetchImplementation(url, {
-          ...init,
           signal: AbortSignal.timeout(10_000),
         });
         if (response.ok) return response;

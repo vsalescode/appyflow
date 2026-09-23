@@ -136,7 +136,7 @@ As variáveis aceitas estão documentadas em `.env.example`.
 | `AI_PROVIDER` | `disabled`, `openai` ou nome reservado para adapter futuro |
 | `AI_API_KEY` | credencial server-side do provider de IA |
 | `AI_MODEL` | modelo usado pelo adapter de IA |
-| `SEARCH_PROVIDER` | `disabled`, `serper` ou nome reservado para adapter futuro |
+| `SEARCH_PROVIDER` | `disabled`, `serper` ou `serpapi` |
 | `SEARCH_API_KEY` | credencial server-side do provider de busca |
 
 Providers ficam desabilitados por padrão. Se um provider for habilitado, sua
@@ -201,8 +201,8 @@ O gerador determinístico combina cargo, modalidade, localização e tecnologias
 Também existe geração opcional por IA com saída estruturada. Queries são
 normalizadas e possuem unicidade por perfil.
 
-O contrato `SearchProvider` recebe query, país, idioma, página e limite. O adapter
-Serper implementa:
+O contrato `SearchProvider` recebe query, país, idioma, página e limite. Os
+adapters Serper e SerpApi implementam:
 
 - autenticação server-side;
 - timeout de dez segundos;
@@ -211,6 +211,12 @@ Serper implementa:
 - limite de dez resultados por página;
 - validação da resposta externa;
 - erros internos sem exposição da chave.
+
+O Serper recebe a página diretamente. A SerpApi recebe um deslocamento; seu
+adapter converte a página para `start = (page - 1) * limit` e traduz
+`organic_results` para o modelo comum. O identificador retornado por cada serviço
+é preservado em `requestId`, quando disponível. O worker conhece apenas o
+contrato e seleciona o adapter por `SEARCH_PROVIDER`.
 
 ### Worker de busca
 

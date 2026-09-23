@@ -15,6 +15,7 @@ RUN apt-get update \
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY prisma ./prisma
 COPY public ./public
+COPY templates ./templates
 COPY scripts ./scripts
 COPY src ./src
 COPY next-env.d.ts next.config.ts postcss.config.mjs prisma.config.ts tsconfig.json ./
@@ -30,6 +31,14 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-lang-portuguese \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 nodejs \
   && useradd --system --uid 1001 --gid nodejs nextjs \

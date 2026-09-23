@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { listMasterResumes } from "@/application/resume/master-resume-service";
+import { listResumeVersions } from "@/application/resume/resume-version-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
 
@@ -13,6 +14,7 @@ export default async function ResumesPage({
 }) {
   const user = await getUserBySessionToken(await readSessionCookie());
   const resumes = user ? await listMasterResumes(user.id) : [];
+  const versions = user ? await listResumeVersions(user.id) : [];
   const query = await searchParams;
 
   return (
@@ -61,7 +63,7 @@ export default async function ResumesPage({
       </form>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold">Histórico</h2>
+        <h2 className="text-xl font-semibold">Histórico do currículo mestre</h2>
         {resumes.length === 0 ? (
           <p className="mt-4 text-slate-600">Nenhum currículo enviado.</p>
         ) : (
@@ -102,6 +104,57 @@ export default async function ResumesPage({
                     {resume.extractedText}
                   </p>
                 </details>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold">Currículos personalizados</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Cada geração é preservada com a vaga, o idioma e os arquivos usados.
+        </p>
+        {versions.length === 0 ? (
+          <p className="mt-4 text-slate-600">
+            Nenhuma versão personalizada foi gerada.
+          </p>
+        ) : (
+          <ol className="mt-4 space-y-5">
+            {versions.map((version) => (
+              <li
+                className="rounded-2xl border border-slate-200 bg-white p-6"
+                key={version.id}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold">
+                      {version.application.job.title}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {version.application.job.company ??
+                        "Empresa não informada"}
+                      {" · "}
+                      {version.language === "PT_BR" ? "Português" : "Inglês"}
+                      {" · "}
+                      {version.createdAt.toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a
+                      className="text-sm font-medium text-emerald-700"
+                      href={`/api/resume-versions/${version.id}/download?format=tex`}
+                    >
+                      Baixar TEX
+                    </a>
+                    <a
+                      className="text-sm font-medium text-emerald-700"
+                      href={`/api/resume-versions/${version.id}/download?format=pdf`}
+                    >
+                      Baixar PDF
+                    </a>
+                  </div>
+                </div>
               </li>
             ))}
           </ol>

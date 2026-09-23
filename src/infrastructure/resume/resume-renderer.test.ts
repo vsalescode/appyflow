@@ -48,6 +48,7 @@ describe("seleção de idioma e template do currículo", () => {
     );
 
     expect(portuguese.language).toBe("PT_BR");
+    expect(portuguese.templateKey).toBe("pt-br/template.tex");
     expect(
       dirname(portuguese.templatePath)
         .replaceAll("\\", "/")
@@ -55,6 +56,7 @@ describe("seleção de idioma e template do currículo", () => {
     ).toBe(true);
     expect(basename(portuguese.templatePath)).toBe("template.tex");
     expect(english.language).toBe("EN");
+    expect(english.templateKey).toBe("en/template.tex");
     expect(
       dirname(english.templatePath)
         .replaceAll("\\", "/")

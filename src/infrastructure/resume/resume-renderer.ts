@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 import { resolveResumeLanguage } from "@/domain/application/resume-language";
@@ -19,6 +20,7 @@ export interface ResumeRenderingRequest {
 
 export interface ResumeTemplateSelection {
   language: ResumeContent["language"];
+  templateKey: string;
   templatePath: string;
 }
 
@@ -34,14 +36,11 @@ export function selectResumeTemplate(
     languageOverride,
     preferredLanguages,
   );
+  const templateKey = `${language === "PT_BR" ? "pt-br" : "en"}/template.tex`;
   return {
     language,
-    templatePath: join(
-      process.cwd(),
-      "templates",
-      language === "PT_BR" ? "pt-br" : "en",
-      "template.tex",
-    ),
+    templateKey,
+    templatePath: join(process.cwd(), "templates", templateKey),
   };
 }
 
@@ -62,6 +61,7 @@ export function renderResumeLatex(
   const template = readTemplate(selection.templatePath);
   return {
     ...selection,
+    templateChecksum: createHash("sha256").update(template).digest("hex"),
     latex:
       selection.language === "PT_BR"
         ? renderPtBrResume(template, content)

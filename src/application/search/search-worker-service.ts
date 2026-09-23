@@ -44,7 +44,7 @@ export interface SearchWorkerFailure {
 
 export interface SearchWorkerSummary {
   queries: { total: number; succeeded: number; failed: number };
-  results: { found: number; stored: number; rejected: number };
+  results: { found: number; stored: number; rejected: number; blocked: number };
   matching: { profiles: number; matched: number; skipped: number };
   failures: SearchWorkerFailure[];
 }
@@ -89,7 +89,7 @@ export async function runSearchWorker(
     throw new Error("Limite de resultados por query inválido.");
   const summary: SearchWorkerSummary = {
     queries: { total: queries.length, succeeded: 0, failed: 0 },
-    results: { found: 0, stored: 0, rejected: 0 },
+    results: { found: 0, stored: 0, rejected: 0, blocked: 0 },
     matching: { profiles: 0, matched: 0, skipped: 0 },
     failures: [],
   };
@@ -118,6 +118,7 @@ export async function runSearchWorker(
       );
       summary.results.stored += normalized.stored;
       summary.results.rejected += normalized.rejected;
+      summary.results.blocked += normalized.blocked;
       summary.queries.succeeded += 1;
     } catch (error) {
       recordFailure(summary, "normalize", query.id, error);

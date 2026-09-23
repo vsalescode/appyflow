@@ -17,7 +17,12 @@ export function parseOpportunityDashboardFilter(input: unknown) {
 export async function getOpportunityDashboard(userId: string, input: unknown) {
   const filter = parseOpportunityDashboardFilter(input);
   const prisma = getPrismaClient();
-  const baseWhere = { profile: { userId } };
+  const baseWhere = {
+    profile: { userId },
+    occurrences: {
+      some: { source: { managementStatus: { not: "BLOCKED" as const } } },
+    },
+  };
   const categoryWhere =
     filter.category === "NEW"
       ? { match: { is: null } }
@@ -50,9 +55,11 @@ export async function getOpportunityDashboard(userId: string, input: unknown) {
         match: true,
         application: true,
         occurrences: {
+          where: { source: { managementStatus: { not: "BLOCKED" } } },
           orderBy: { discoveredAt: "desc" },
-          take: 1,
-          include: { source: { select: { domain: true } } },
+          include: {
+            source: { select: { domain: true, managementStatus: true } },
+          },
         },
       },
       orderBy: [{ match: { score: "desc" } }, { discoveredAt: "desc" }],
@@ -73,7 +80,29 @@ export async function getOpportunityDashboard(userId: string, input: unknown) {
 
   return {
     filter,
-    jobs,
+    jobs: jobs
+      .map((job) => ({
+        ...job,
+        occurrences: [...job.occurrences].sort(
+          (left, right) =>
+            Number(right.source.managementStatus === "PRIORITIZED") -
+              Number(left.source.managementStatus === "PRIORITIZED") ||
+            right.discoveredAt.getTime() - left.discoveredAt.getTime(),
+        ),
+      }))
+      .sort(
+        (left, right) =>
+          Number(
+            right.occurrences.some(
+              (item) => item.source.managementStatus === "PRIORITIZED",
+            ),
+          ) -
+          Number(
+            left.occurrences.some(
+              (item) => item.source.managementStatus === "PRIORITIZED",
+            ),
+          ),
+      ),
     counts: { ALL: total, NEW: newCount, HOT: hot, WARM: warm, COLD: cold },
   };
 }

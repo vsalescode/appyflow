@@ -14,7 +14,10 @@ describe("search worker", () => {
         items: [{ title: query, url: `https://example.com/${query}` }],
       })),
     };
-    const normalize = vi.fn(async () => ({ stored: 1, rejected: 0 }));
+    const normalize = vi
+      .fn()
+      .mockResolvedValueOnce({ stored: 1, rejected: 0, blocked: 0 })
+      .mockResolvedValueOnce({ stored: 0, rejected: 0, blocked: 1 });
     const match = vi.fn(async () => ({ matched: 2, skipped: 1 }));
 
     const summary = await runSearchWorker(provider, {
@@ -28,7 +31,7 @@ describe("search worker", () => {
 
     expect(summary).toEqual({
       queries: { total: 2, succeeded: 2, failed: 0 },
-      results: { found: 2, stored: 2, rejected: 0 },
+      results: { found: 2, stored: 1, rejected: 0, blocked: 1 },
       matching: { profiles: 1, matched: 2, skipped: 1 },
       failures: [],
     });
@@ -56,7 +59,11 @@ describe("search worker", () => {
         .mockRejectedValueOnce(new SearchProviderError("rate_limit"))
         .mockResolvedValueOnce({ items: [] }),
     };
-    const normalize = vi.fn(async () => ({ stored: 0, rejected: 0 }));
+    const normalize = vi.fn(async () => ({
+      stored: 0,
+      rejected: 0,
+      blocked: 0,
+    }));
 
     const summary = await runSearchWorker(provider, {
       listQueries: async () => [
@@ -110,7 +117,7 @@ describe("search worker", () => {
       },
       {
         listQueries,
-        normalize: vi.fn(async () => ({ stored: 0, rejected: 0 })),
+        normalize: vi.fn(async () => ({ stored: 0, rejected: 0, blocked: 0 })),
         match: vi.fn(async () => ({ matched: 0, skipped: 0 })),
       },
       { userId: "user-1", maxQueries: 4, resultsPerQuery: 6 },

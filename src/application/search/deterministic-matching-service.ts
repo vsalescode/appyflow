@@ -17,7 +17,13 @@ export async function calculateAndStoreDeterministicMatches(
       professionalFacts: {
         where: { type: "SKILL", reviewStatus: "CONFIRMED" },
       },
-      jobs: true,
+      jobs: {
+        where: {
+          occurrences: {
+            some: { source: { managementStatus: { not: "BLOCKED" } } },
+          },
+        },
+      },
     },
   });
   if (!profile) return { matched: 0, skipped: 0 };

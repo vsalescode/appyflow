@@ -20,9 +20,20 @@ const scoreLevels = {
   LOW: "Baixa",
 } as const;
 
-export default async function SourcesPage() {
+const managementLabels = {
+  DEFAULT: "Padrão",
+  PRIORITIZED: "Priorizada",
+  BLOCKED: "Bloqueada",
+} as const;
+
+export default async function SourcesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getUserBySessionToken(await readSessionCookie());
   const sources = user ? await listDiscoveredSources(user.id) : [];
+  const query = await searchParams;
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
@@ -33,6 +44,14 @@ export default async function SourcesPage() {
       <p className="mt-2 text-slate-600">
         Domínios encontrados durante a normalização e suas métricas observadas.
       </p>
+      {query.sucesso ? (
+        <p className="mt-4 text-sm text-emerald-700">Decisão salva.</p>
+      ) : null}
+      {query.erro ? (
+        <p className="mt-4 text-sm text-red-700">
+          Não foi possível atualizar a fonte.
+        </p>
+      ) : null}
 
       {!sources.length ? (
         <p className="mt-8 text-slate-600">Nenhuma fonte descoberta.</p>
@@ -48,13 +67,19 @@ export default async function SourcesPage() {
                       {source.score.value}/100 ·{" "}
                       {scoreLevels[source.score.level]}
                     </span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                      {managementLabels[source.managementStatus]}
+                    </span>
                   </div>
                   <p className="text-sm text-slate-600">
                     {source.provider} · {sourceKinds[source.kind]}
                   </p>
                 </div>
                 <p className="text-sm text-slate-600">
-                  Última observação: {source.lastSeenAt.toLocaleString("pt-BR")}
+                  Primeira observação:{" "}
+                  {source.firstSeenAt.toLocaleString("pt-BR")}
+                  {" · "}
+                  Última: {source.lastSeenAt.toLocaleString("pt-BR")}
                 </p>
               </div>
               <dl className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -62,6 +87,30 @@ export default async function SourcesPage() {
                 <Metric label="Vagas únicas" value={source.uniqueJobCount} />
                 <Metric label="Snapshots" value={source.metricHistory.length} />
               </dl>
+              <form
+                action={`/api/sources/${source.id}/management`}
+                className="mt-4 flex flex-wrap items-end gap-3"
+                method="post"
+              >
+                <label className="text-sm font-medium">
+                  Tratamento no pipeline
+                  <select
+                    className="mt-1 block rounded-lg border bg-white px-3 py-2"
+                    defaultValue={source.managementStatus}
+                    name="status"
+                  >
+                    <option value="DEFAULT">Padrão</option>
+                    <option value="PRIORITIZED">Priorizar</option>
+                    <option value="BLOCKED">Bloquear</option>
+                  </select>
+                </label>
+                <button
+                  className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+                  type="submit"
+                >
+                  Salvar
+                </button>
+              </form>
               <details className="mt-4 text-sm text-slate-600">
                 <summary className="cursor-pointer font-medium text-slate-800">
                   Como a pontuação foi calculada

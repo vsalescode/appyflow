@@ -50,7 +50,7 @@ describe("agendamento de buscas", () => {
     );
     const runWorker = vi.fn(async () => ({
       queries: { total: 3, succeeded: 2, failed: 1 },
-      results: { found: 12, stored: 8, rejected: 4 },
+      results: { found: 12, stored: 8, rejected: 3, blocked: 1 },
       matching: { profiles: 1, matched: 7, skipped: 1 },
       failures: [
         {
@@ -81,7 +81,8 @@ describe("agendamento de buscas", () => {
         queriesFailed: 1,
         resultsFound: 12,
         resultsStored: 8,
-        resultsRejected: 4,
+        resultsRejected: 3,
+        resultsBlocked: 1,
         jobsMatched: 7,
         jobsSkipped: 1,
       },

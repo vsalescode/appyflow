@@ -90,6 +90,12 @@ enum SourceKind {
   SPECIALIZED_PORTAL
 }
 
+enum SourceManagementStatus {
+  DEFAULT
+  PRIORITIZED
+  BLOCKED
+}
+
 enum MatchClassification {
   HOT
   WARM
@@ -170,6 +176,7 @@ model SearchRun {
   resultsFound     Int              @default(0) @map("results_found")
   resultsStored    Int              @default(0) @map("results_stored")
   resultsRejected  Int              @default(0) @map("results_rejected")
+  resultsBlocked   Int              @default(0) @map("results_blocked")
   jobsMatched      Int              @default(0) @map("jobs_matched")
   jobsSkipped      Int              @default(0) @map("jobs_skipped")
   failures         Json?
@@ -198,19 +205,22 @@ model SearchQuery {
 }
 
 model Source {
-  id              String                 @id @default(uuid()) @db.Uuid
-  provider        String                 @db.VarChar(50)
-  domain          String                 @db.VarChar(253)
-  kind            SourceKind             @default(UNKNOWN)
-  firstSeenAt     DateTime               @default(now()) @map("first_seen_at") @db.Timestamptz(3)
-  lastSeenAt      DateTime               @default(now()) @map("last_seen_at") @db.Timestamptz(3)
-  occurrenceCount Int                    @default(0) @map("occurrence_count")
-  uniqueJobCount  Int                    @default(0) @map("unique_job_count")
-  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  occurrences     JobOccurrence[]
-  metricHistory   SourceMetricSnapshot[]
+  id               String                 @id @default(uuid()) @db.Uuid
+  provider         String                 @db.VarChar(50)
+  domain           String                 @db.VarChar(253)
+  kind             SourceKind             @default(UNKNOWN)
+  managementStatus SourceManagementStatus @default(DEFAULT) @map("management_status")
+  managedAt        DateTime?              @map("managed_at") @db.Timestamptz(3)
+  firstSeenAt      DateTime               @default(now()) @map("first_seen_at") @db.Timestamptz(3)
+  lastSeenAt       DateTime               @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  occurrenceCount  Int                    @default(0) @map("occurrence_count")
+  uniqueJobCount   Int                    @default(0) @map("unique_job_count")
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  occurrences      JobOccurrence[]
+  metricHistory    SourceMetricSnapshot[]
 
   @@unique([provider, domain])
+  @@index([managementStatus])
   @@map("sources")
 }
 

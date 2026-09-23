@@ -59,7 +59,7 @@ describe("job normalization service", () => {
       () => discoveredAt,
     );
 
-    expect(summary).toEqual({ stored: 2, rejected: 1 });
+    expect(summary).toEqual({ stored: 2, rejected: 1, blocked: 0 });
     await expect(prisma.source.count()).resolves.toBe(1);
     await expect(prisma.source.findFirst()).resolves.toMatchObject({
       provider: "serper",
@@ -144,5 +144,24 @@ describe("job normalization service", () => {
     await expect(prisma.job.count()).resolves.toBe(1);
     await expect(prisma.source.count()).resolves.toBe(2);
     await expect(prisma.jobOccurrence.count()).resolves.toBe(2);
+  });
+
+  it("ignora novos resultados de uma fonte bloqueada", async () => {
+    const query = await createQuery();
+    await normalizeAndStoreSearchResults(query.id, "serper", [
+      { title: "Engineer", url: "https://blocked.example.com/job/1" },
+    ]);
+    await prisma.source.updateMany({
+      where: { domain: "blocked.example.com" },
+      data: { managementStatus: "BLOCKED" },
+    });
+
+    await expect(
+      normalizeAndStoreSearchResults(query.id, "serper", [
+        { title: "Another Engineer", url: "https://blocked.example.com/job/2" },
+      ]),
+    ).resolves.toEqual({ stored: 0, rejected: 0, blocked: 1 });
+    await expect(prisma.job.count()).resolves.toBe(1);
+    await expect(prisma.jobOccurrence.count()).resolves.toBe(1);
   });
 });

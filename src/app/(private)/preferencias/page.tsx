@@ -258,6 +258,9 @@ export default async function PreferencesPage({
                 {run.queriesSucceeded}/{run.queriesTotal} queries
                 {" · "}
                 {run.resultsStored} resultados processados
+                {run.resultsBlocked
+                  ? ` · ${run.resultsBlocked} bloqueados`
+                  : ""}
               </li>
             ))}
           </ol>

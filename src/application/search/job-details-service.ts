@@ -4,7 +4,13 @@ import { parseStoredAIJobMatchAnalysis } from "./ai-matching-service";
 
 export async function getJobDetails(userId: string, jobId: string) {
   const job = await getPrismaClient().job.findFirst({
-    where: { id: jobId, profile: { userId } },
+    where: {
+      id: jobId,
+      profile: { userId },
+      occurrences: {
+        some: { source: { managementStatus: { not: "BLOCKED" } } },
+      },
+    },
     include: {
       match: true,
       application: {
@@ -14,6 +20,7 @@ export async function getJobDetails(userId: string, jobId: string) {
         },
       },
       occurrences: {
+        where: { source: { managementStatus: { not: "BLOCKED" } } },
         orderBy: { discoveredAt: "desc" },
         include: {
           source: { select: { domain: true, provider: true, kind: true } },

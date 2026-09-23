@@ -57,6 +57,9 @@ Serviços de aplicação
           |-- OpenAI
           |-- Serper
           `-- filesystem privado
+
+Worker de busca
+   `-- query -> search -> normalize -> deduplicate -> filter -> match -> persist
 ```
 
 O navegador não recebe chaves de providers e não chama APIs externas diretamente.
@@ -71,6 +74,7 @@ src/application/            casos de uso e contratos internos
 src/domain/                 validações e regras sem dependência da interface
 src/infrastructure/         autenticação, Prisma, providers e storage
 src/server/                 configuração e health checks
+src/worker/                 entrypoints dos processos de background
 prisma/schema.prisma        modelo atual do banco
 prisma/migrations/          histórico versionado de migrations
 scripts/                    rotinas de build e testes de integração
@@ -78,8 +82,8 @@ docs/                       documentação funcional e técnica
 public/                     arquivos públicos da aplicação
 ```
 
-Não existem atualmente worker, scheduler, fila, Redis ou microsserviços. Esses
-componentes só serão introduzidos quando um fluxo implementado precisar deles.
+Existe um worker executável sob demanda para o pipeline de busca. Ainda não há
+scheduler, fila, Redis ou microsserviços.
 
 ## Execução local
 
@@ -113,6 +117,9 @@ O Compose inicia três componentes:
 - `database`: PostgreSQL com volume persistente;
 - `migrate`: aplica migrations e termina;
 - `app`: inicia o servidor após a conclusão das migrations.
+
+O serviço opcional `worker` usa um target próprio da imagem e só é iniciado pelo
+profile `worker`.
 
 Uploads são armazenados no volume privado `artifacts-data`. O banco utiliza o
 volume `postgres-data`.
@@ -205,6 +212,22 @@ Serper implementa:
 - validação da resposta externa;
 - erros internos sem exposição da chave.
 
+### Worker de busca
+
+O comando `npm run worker:search` carrega todas as queries cadastradas e as
+processa sequencialmente. Cada resultado passa pela normalização, deduplicação e
+persistência já existentes; ao final de cada perfil, filtros rápidos e matching
+determinístico são recalculados. Falhas são isoladas por query e apresentadas em
+um resumo JSON sem conteúdo de vagas ou credenciais.
+
+No Compose, a execução manual usa:
+
+```powershell
+docker compose --profile worker run --rm worker
+```
+
+Essa execução ainda não possui horário, ativação ou limites configuráveis.
+
 ## Normalização e deduplicação de vagas
 
 Resultados de busca são transformados em campos internos de vaga. Dados ausentes
@@ -237,6 +260,9 @@ canônica é usada para evitar uniões excessivas.
 | `Source` | provider e domínio de origem |
 | `Job` | oportunidade normalizada e deduplicada |
 | `JobOccurrence` | proveniência de cada resultado observado |
+| `JobMatch` | score, classificação e explicações da compatibilidade |
+| `Application` | estado atual da candidatura |
+| `ResumeVersion` | conteúdo e artefatos imutáveis do currículo personalizado |
 
 O arquivo `prisma/schema.prisma` é a referência definitiva para campos,
 constraints e relações. Mudanças de banco são entregues exclusivamente por
@@ -291,13 +317,10 @@ não confiáveis. Eles não podem escolher ferramentas, comandos ou credenciais.
 Os seguintes componentes fazem parte da direção do produto, mas não estão no
 repositório como fluxos completos:
 
-- execução orquestrada e histórico de buscas;
-- métricas e pontuação de qualidade das fontes;
-- filtros rápidos e matching de vagas;
-- dashboard de oportunidades e página detalhada da vaga;
-- pipeline de candidaturas;
-- geração bilíngue de currículos e compilação LaTeX;
-- automação diária, scheduler e deploy no Render;
+- histórico de execuções do worker;
+- automação diária com horário, ativação e limites configuráveis;
+- priorização e bloqueio manual de fontes;
+- deploy no Render;
 - observabilidade operacional completa;
 - segundo adapter de IA ou busca.
 

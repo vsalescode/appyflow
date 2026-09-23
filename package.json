@@ -11,6 +11,7 @@
     "build": "next build",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "node --env-file-if-exists=.env.local .next/standalone/server.js",
+    "worker:search": "tsx src/worker/search-worker.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"*.{json,md,mjs,mts,ts,yaml,yml}\"",
@@ -35,6 +36,7 @@
     "pdfjs-dist": "6.3.289",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "tsx": "4.23.15",
     "zod": "4.6.5"
   },
   "devDependencies": {

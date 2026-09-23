@@ -25,6 +25,12 @@ export function getPrismaClient(): PrismaClient {
   return prismaGlobal.appyflowPrisma;
 }
 
+export async function disconnectPrismaClient(): Promise<void> {
+  if (!prismaGlobal.appyflowPrisma) return;
+  await prismaGlobal.appyflowPrisma.$disconnect();
+  prismaGlobal.appyflowPrisma = undefined;
+}
+
 export async function checkDatabaseConnection(): Promise<void> {
   let timeoutId: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {

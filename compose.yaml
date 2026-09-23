@@ -6,6 +6,11 @@ services:
       APP_URL: http://localhost:3000
       DATABASE_URL: postgresql://appyflow:appyflow@database:5432/appyflow
       ARTIFACTS_DIR: /app/data/artifacts
+      AI_PROVIDER: ${AI_PROVIDER:-disabled}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-disabled}
+      SEARCH_API_KEY: ${SEARCH_API_KEY:-}
     ports:
       - "3000:3000"
     depends_on:
@@ -14,6 +19,21 @@ services:
     restart: unless-stopped
     volumes:
       - artifacts-data:/app/data
+
+  worker:
+    build:
+      context: .
+      target: worker
+    profiles: ["worker"]
+    environment:
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://appyflow:appyflow@database:5432/appyflow
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-disabled}
+      SEARCH_API_KEY: ${SEARCH_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
 
   migrate:
     build:

@@ -114,8 +114,22 @@ docker compose --profile worker run --rm worker
 
 As queries são processadas sequencialmente. Uma falha isolada não impede as
 demais buscas; o resumo é emitido como JSON e o processo retorna código diferente
-de zero quando alguma etapa falha. A execução automática por horário ainda não
-está disponível.
+de zero quando alguma etapa falha.
+
+O horário diário, fuso e limites são configurados em `/preferencias`. O
+agendamento começa desativado. Para manter o scheduler em execução localmente:
+
+```powershell
+npm run worker:scheduler
+```
+
+No Compose:
+
+```powershell
+docker compose --profile scheduler up -d scheduler
+```
+
+Cada ciclo reivindicado é registrado com status, contadores e falhas sanitizadas.
 
 ## Docker Compose
 
@@ -125,8 +139,8 @@ docker compose up --build
 
 O Compose inicia a aplicação e o PostgreSQL. A integração com o banco é
 configurada automaticamente e as migrations são aplicadas antes do servidor
-iniciar. O serviço `worker` é executado somente quando solicitado pelo profile
-correspondente.
+iniciar. Os serviços `worker` e `scheduler` são executados somente quando seus
+profiles correspondentes são solicitados.
 
 Para encerrar os containers sem remover os dados:
 

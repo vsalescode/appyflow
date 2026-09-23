@@ -96,4 +96,31 @@ describe("search worker", () => {
     expect(search).not.toHaveBeenCalled();
     expect(match).not.toHaveBeenCalled();
   });
+
+  it("aplica os limites configurados ao ciclo", async () => {
+    const listQueries = vi.fn(async () => [
+      { id: "query-1", query: "backend", userId: "user-1" },
+    ]);
+    const search = vi.fn(async () => ({ items: [] }));
+    await runSearchWorker(
+      {
+        name: "test-provider",
+        search,
+        checkHealth: vi.fn(async () => ({ status: "available" as const })),
+      },
+      {
+        listQueries,
+        normalize: vi.fn(async () => ({ stored: 0, rejected: 0 })),
+        match: vi.fn(async () => ({ matched: 0, skipped: 0 })),
+      },
+      { userId: "user-1", maxQueries: 4, resultsPerQuery: 6 },
+    );
+
+    expect(listQueries).toHaveBeenCalledWith({
+      userId: "user-1",
+      maxQueries: 4,
+      resultsPerQuery: 6,
+    });
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ limit: 6 }));
+  });
 });

@@ -112,6 +112,13 @@ enum ResumeLanguage {
   EN
 }
 
+enum SearchRunStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL_FAILURE
+  FAILED
+}
+
 model CandidateProfile {
   id                String             @id @default(uuid()) @db.Uuid
   userId            String             @unique @map("user_id") @db.Uuid
@@ -128,8 +135,49 @@ model CandidateProfile {
   preference        Preference?
   searchQueries     SearchQuery[]
   jobs              Job[]
+  searchSchedule    SearchSchedule?
+  searchRuns        SearchRun[]
 
   @@map("candidate_profiles")
+}
+
+model SearchSchedule {
+  id              String           @id @default(uuid()) @db.Uuid
+  profileId       String           @unique @map("profile_id") @db.Uuid
+  enabled         Boolean          @default(false)
+  scheduledTime   String           @default("09:00") @map("scheduled_time") @db.Char(5)
+  timeZone        String           @default("UTC") @map("time_zone") @db.VarChar(100)
+  maxQueries      Int              @default(10) @map("max_queries")
+  resultsPerQuery Int              @default(10) @map("results_per_query")
+  nextRunAt       DateTime?        @map("next_run_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile         CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([enabled, nextRunAt])
+  @@map("search_schedules")
+}
+
+model SearchRun {
+  id               String           @id @default(uuid()) @db.Uuid
+  profileId        String           @map("profile_id") @db.Uuid
+  status           SearchRunStatus
+  startedAt        DateTime         @map("started_at") @db.Timestamptz(3)
+  finishedAt       DateTime?        @map("finished_at") @db.Timestamptz(3)
+  queriesTotal     Int              @default(0) @map("queries_total")
+  queriesSucceeded Int              @default(0) @map("queries_succeeded")
+  queriesFailed    Int              @default(0) @map("queries_failed")
+  resultsFound     Int              @default(0) @map("results_found")
+  resultsStored    Int              @default(0) @map("results_stored")
+  resultsRejected  Int              @default(0) @map("results_rejected")
+  jobsMatched      Int              @default(0) @map("jobs_matched")
+  jobsSkipped      Int              @default(0) @map("jobs_skipped")
+  failures         Json?
+  profile          CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, startedAt])
+  @@index([status, startedAt])
+  @@map("search_runs")
 }
 
 model SearchQuery {

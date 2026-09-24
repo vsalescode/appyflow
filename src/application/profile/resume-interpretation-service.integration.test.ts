@@ -57,6 +57,14 @@ describe("resume interpretation", () => {
     await interpretActiveResume(
       user.id,
       fakeProvider({
+        profile: {
+          headline: "Backend Engineer",
+          summary: "Backend Engineer com experiência em TypeScript.",
+          seniority: "MID_LEVEL",
+          city: null,
+          region: null,
+          country: null,
+        },
         facts: [
           {
             type: "SKILL",
@@ -77,6 +85,13 @@ describe("resume interpretation", () => {
       aiModel: "fake-model",
       aiRequestId: "request-1",
     });
+    await expect(
+      prisma.candidateProfile.findUnique({ where: { userId: user.id } }),
+    ).resolves.toMatchObject({
+      headline: "Backend Engineer",
+      summary: "Backend Engineer com experiência em TypeScript.",
+      seniority: "MID_LEVEL",
+    });
   });
 
   it("rejeita a resposta inteira quando a evidência não existe", async () => {
@@ -85,6 +100,14 @@ describe("resume interpretation", () => {
       interpretActiveResume(
         user.id,
         fakeProvider({
+          profile: {
+            headline: "Backend Engineer",
+            summary: null,
+            seniority: "UNSPECIFIED",
+            city: null,
+            region: null,
+            country: null,
+          },
           facts: [
             {
               type: "SKILL",
@@ -100,5 +123,6 @@ describe("resume interpretation", () => {
       ),
     ).rejects.toThrow("sem evidência literal");
     await expect(prisma.professionalFact.count()).resolves.toBe(0);
+    await expect(prisma.candidateProfile.count()).resolves.toBe(0);
   });
 });

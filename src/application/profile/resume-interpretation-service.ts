@@ -18,7 +18,28 @@ const extractedFactSchema = z.object({
   evidenceQuote: z.string().min(1).max(2_000),
 });
 
+const extractedProfileSchema = z.object({
+  headline: z.string().min(1).max(160).nullable(),
+  summary: z.string().min(1).max(4_000).nullable(),
+  seniority: z
+    .enum([
+      "UNSPECIFIED",
+      "INTERN",
+      "JUNIOR",
+      "MID_LEVEL",
+      "SENIOR",
+      "LEAD",
+      "MANAGER",
+      "EXECUTIVE",
+    ])
+    .nullable(),
+  city: z.string().min(1).max(120).nullable(),
+  region: z.string().min(1).max(120).nullable(),
+  country: z.string().regex(/^[A-Z]{2}$/).nullable(),
+});
+
 const interpretationSchema = z.object({
+  profile: extractedProfileSchema,
   facts: z.array(extractedFactSchema).max(50),
 });
 type Interpretation = z.infer<typeof interpretationSchema>;
@@ -49,7 +70,7 @@ export async function interpretActiveResume(
       {
         role: "system",
         content:
-          "Extraia somente skills e experiências explicitamente sustentadas pelo currículo. Cada fato deve conter uma citação literal em evidenceQuote. Não invente, complete ou estime informações ausentes.",
+          "Extraia um perfil profissional e somente skills e experiências sustentadas pelo currículo. Produza headline e summary concisos usando apenas informações presentes no documento. Use null para localização ou outros campos ausentes; nunca invente, complete ou estime dados. country deve ser um código ISO 3166-1 alpha-2 maiúsculo. Cada fato deve conter em evidenceQuote uma citação literal do currículo.",
       },
       { role: "user", content: resume.extractedText },
     ],
@@ -68,12 +89,21 @@ export async function interpretActiveResume(
       throw new Error("A interpretação contém datas inválidas.");
   }
 
-  const profile = await prisma.candidateProfile.upsert({
-    where: { userId },
-    create: { id: randomUUID(), userId },
-    update: {},
-  });
+  const profileData = {
+    headline: result.output.profile.headline ?? undefined,
+    summary: result.output.profile.summary ?? undefined,
+    seniority: result.output.profile.seniority ?? undefined,
+    city: result.output.profile.city ?? undefined,
+    region: result.output.profile.region ?? undefined,
+    country: result.output.profile.country ?? undefined,
+  };
+
   return prisma.$transaction(async (transaction) => {
+    const profile = await transaction.candidateProfile.upsert({
+      where: { userId },
+      create: { id: randomUUID(), userId, ...profileData },
+      update: profileData,
+    });
     await transaction.professionalFact.deleteMany({
       where: {
         profileId: profile.id,

@@ -69,7 +69,7 @@ export class SerpApiSearchProvider implements SearchProvider {
     url.searchParams.set("api_key", this.apiKey);
     if (request.country)
       url.searchParams.set("gl", request.country.toLowerCase());
-    const location = request.location ?? countryName(request.country);
+    const location = resolveLocation(request.location, request.country);
     if (location) url.searchParams.set("location", location);
     if (request.language) url.searchParams.set("hl", request.language);
 
@@ -172,7 +172,7 @@ export class SerpApiSearchProvider implements SearchProvider {
         if (response.status === 429 && attempt === 1)
           throw new SearchProviderError("rate_limit");
         if (response.status < 500 && response.status !== 429)
-          throw new SearchProviderError("upstream");
+          throw new SearchProviderError("invalid_response");
         if (attempt === 1) throw new SearchProviderError("upstream");
       } catch (error) {
         if (error instanceof SearchProviderError) throw error;
@@ -250,4 +250,40 @@ function countryName(country?: string) {
   } catch {
     return undefined;
   }
+}
+
+function resolveLocation(location?: string, country?: string) {
+  const canonicalCountry = countryName(country);
+  if (!location) return canonicalCountry;
+  if (!country || !canonicalCountry) return location;
+
+  const normalizedLocation = normalizeLocation(location);
+  const countryAliases = [
+    country,
+    canonicalCountry,
+    localizedCountryName(country),
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map(normalizeLocation);
+  return countryAliases.includes(normalizedLocation)
+    ? canonicalCountry
+    : location;
+}
+
+function localizedCountryName(country: string) {
+  try {
+    return new Intl.DisplayNames(["pt-BR"], { type: "region" }).of(
+      country.toUpperCase(),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeLocation(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
 }

@@ -232,7 +232,9 @@ individuais e traduz `jobs_results` para o modelo comum. Empresa, localização 
 descrição completa vêm do resultado estruturado; o link é escolhido em
 `apply_options`, apontando para a vaga específica na empresa, ATS ou portal. A
 localização preferida é enviada separadamente para evitar resultados definidos
-pelo proxy do provider. O adapter Serper mantém a busca orgânica como fallback.
+pelo proxy do provider. Quando a localização representa um país, nomes
+localizados como `Brasil` são convertidos para o formato canônico aceito pela
+SerpApi, como `Brazil`. O adapter Serper mantém a busca orgânica como fallback.
 Páginas de listagem nunca são persistidas como vagas individuais. O identificador
 retornado por cada serviço é preservado em `requestId`, quando disponível.
 

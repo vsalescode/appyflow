@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { saveSearchSchedule } from "@/application/search/search-schedule-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 
 export async function POST(request: Request) {
   if (!hasTrustedOrigin(request)) return new Response(null, { status: 403 });
@@ -20,12 +20,12 @@ export async function POST(request: Request) {
       resultsPerQuery: form.get("resultsPerQuery"),
     });
     return NextResponse.redirect(
-      new URL("/preferencias?sucesso=agendamento", request.url),
+      createAppUrl("/preferencias?sucesso=agendamento"),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL("/preferencias?erro=agendamento", request.url),
+      createAppUrl("/preferencias?erro=agendamento"),
       303,
     );
   }

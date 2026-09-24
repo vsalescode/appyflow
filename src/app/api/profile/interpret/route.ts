@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { interpretActiveResume } from "@/application/profile/resume-interpretation-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 import { getAIProvider } from "@/infrastructure/providers/ai-provider-factory";
 
 export async function POST(request: Request) {
@@ -15,12 +15,12 @@ export async function POST(request: Request) {
     if (!provider) throw new Error("AI disabled");
     await interpretActiveResume(user.id, provider);
     return NextResponse.redirect(
-      new URL("/perfil?sucesso=interpretacao", request.url),
+      createAppUrl("/perfil?sucesso=interpretacao"),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL("/perfil?erro=interpretacao", request.url),
+      createAppUrl("/perfil?erro=interpretacao"),
       303,
     );
   }

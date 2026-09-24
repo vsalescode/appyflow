@@ -6,7 +6,7 @@ import {
   generateDeterministicQueries,
 } from "@/application/search/query-generator";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 import { getAIProvider } from "@/infrastructure/providers/ai-provider-factory";
 
 export async function POST(request: Request) {
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
       await generateAIQueries(user.id, provider);
     } else throw new Error("Invalid generation mode");
     return NextResponse.redirect(
-      new URL("/queries?sucesso=1", request.url),
+      createAppUrl("/queries?sucesso=1"),
       303,
     );
   } catch {
-    return NextResponse.redirect(new URL("/queries?erro=1", request.url), 303);
+    return NextResponse.redirect(createAppUrl("/queries?erro=1"), 303);
   }
 }

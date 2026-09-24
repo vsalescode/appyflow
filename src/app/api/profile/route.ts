@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { saveCandidateProfile } from "@/application/profile/profile-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 
 export async function POST(request: Request) {
   if (!hasTrustedOrigin(request)) return new Response(null, { status: 403 });
@@ -13,12 +13,12 @@ export async function POST(request: Request) {
     const form = await request.formData();
     await saveCandidateProfile(user.id, Object.fromEntries(form));
     return NextResponse.redirect(
-      new URL("/perfil?sucesso=perfil", request.url),
+      createAppUrl("/perfil?sucesso=perfil"),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL("/perfil?erro=perfil", request.url),
+      createAppUrl("/perfil?erro=perfil"),
       303,
     );
   }

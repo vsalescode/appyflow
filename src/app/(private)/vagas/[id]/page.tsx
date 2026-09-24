@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { getJobDetails } from "@/application/search/job-details-service";
@@ -31,7 +31,8 @@ export default async function JobDetailsPage({
   searchParams: Promise<{ sucesso?: string; erro?: string }>;
 }) {
   const user = await getUserBySessionToken(await readSessionCookie());
-  const job = await getJobDetails(user!.id, (await params).id);
+  if (!user) redirect("/login");
+  const job = await getJobDetails(user.id, (await params).id);
   if (!job) notFound();
   const feedback = await searchParams;
   const latestOccurrence = job.occurrences[0];

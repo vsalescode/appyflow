@@ -5,3 +5,7 @@ export function hasTrustedOrigin(request: Request) {
   if (!origin) return false;
   return origin === new URL(parseServerEnv(process.env).APP_URL).origin;
 }
+
+export function createAppUrl(path: string) {
+  return new URL(path, parseServerEnv(process.env).APP_URL);
+}

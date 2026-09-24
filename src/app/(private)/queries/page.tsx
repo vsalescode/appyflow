@@ -57,6 +57,15 @@ export default async function QueriesPage({
             Gerar queries com IA
           </button>
         </form>
+        <form action="/api/search-runs/manual" method="post">
+          <button
+            className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!queries.length}
+            type="submit"
+          >
+            Buscar vagas agora
+          </button>
+        </form>
       </div>
       <section className="mt-10">
         <h2 className="text-xl font-semibold">Consultas registradas</h2>

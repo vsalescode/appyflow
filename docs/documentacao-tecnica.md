@@ -231,6 +231,11 @@ persistência já existentes; ao final de cada perfil, filtros rápidos e matchi
 determinístico são recalculados. Falhas são isoladas por query e apresentadas em
 um resumo JSON sem conteúdo de vagas ou credenciais.
 
+A interface autenticada também expõe uma execução única por
+`POST /api/search-runs/manual`. A rota usa os limites do agendamento quando eles
+existem, ou os padrões de dez queries e dez resultados, e persiste o resumo em
+`SearchRun`. Execuções manuais e agendadas compartilham o mesmo pipeline.
+
 No Compose, a execução manual usa:
 
 ```powershell

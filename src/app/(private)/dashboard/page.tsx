@@ -53,20 +53,29 @@ export default async function DashboardPage({
             Vagas descobertas e classificadas pela aderência ao seu perfil.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <NavLink href="/perfil">Perfil</NavLink>
-          <NavLink href="/preferencias">Preferências</NavLink>
-          <NavLink href="/fontes">Fontes</NavLink>
-          <form action="/api/auth/logout" method="post">
-            <button
-              className="rounded-lg border bg-white px-3 py-2 text-sm"
-              type="submit"
-            >
-              Sair
-            </button>
-          </form>
-        </div>
+        <form action="/api/search-runs/manual" method="post">
+          <button
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+            type="submit"
+          >
+            Buscar vagas agora
+          </button>
+        </form>
       </header>
+
+      {params.sucesso === "busca" ? (
+        <Notice tone="success">
+          Busca concluída. As oportunidades encontradas já estão no dashboard.
+        </Notice>
+      ) : params.aviso === "busca" ? (
+        <Notice tone="warning">
+          Busca concluída parcialmente. Consulte o histórico em Preferências.
+        </Notice>
+      ) : params.erro === "busca" ? (
+        <Notice tone="error">
+          Não foi possível executar a busca. Verifique as queries e o provider.
+        </Notice>
+      ) : null}
 
       <section className="mt-8 grid gap-3 sm:grid-cols-5">
         {categories.map((category) => (
@@ -221,17 +230,20 @@ export default async function DashboardPage({
   );
 }
 
-function NavLink({
-  href,
+function Notice({
+  tone,
   children,
 }: {
-  href: string;
+  tone: "success" | "warning" | "error";
   children: React.ReactNode;
 }) {
+  const colors = {
+    success: "bg-emerald-50 text-emerald-800",
+    warning: "bg-amber-50 text-amber-800",
+    error: "bg-rose-50 text-rose-800",
+  };
   return (
-    <Link className="rounded-lg border bg-white px-3 py-2 text-sm" href={href}>
-      {children}
-    </Link>
+    <p className={`mt-6 rounded-xl p-4 text-sm ${colors[tone]}`}>{children}</p>
   );
 }
 

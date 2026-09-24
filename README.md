@@ -85,6 +85,10 @@ transitórias, limitam cada página a dez resultados e não expõem a chave em
 mensagens de erro. O worker conecta o adapter selecionado à normalização,
 deduplicação, filtragem, matching e persistência das vagas.
 
+Depois de gerar as queries, o botão `Buscar vagas agora` em `/queries` ou no
+dashboard executa um ciclo único e registra seu resultado no histórico. Essa
+ação não ativa a busca automática.
+
 Os resultados do contrato de busca podem ser convertidos para o modelo interno de
 vaga, com título, empresa, descrição, localização, modalidade, URL, fonte, data
 publicada e instante de descoberta. Campos ausentes continuam desconhecidos e

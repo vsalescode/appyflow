@@ -111,6 +111,45 @@ describe("GroqProvider", () => {
     ).rejects.toThrow("invalid structured output");
   });
 
+  it("repete a chamada quando o limite temporário é atingido", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 429,
+          headers: { "retry-after": "0.001" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "completion-2",
+            model: "openai/gpt-oss-20b",
+            choices: [{ message: { content: '{"value":"ok"}' } }],
+          }),
+          { status: 200 },
+        ),
+      );
+    const provider = new GroqProvider(
+      "secret",
+      "openai/gpt-oss-20b",
+      fetchMock,
+    );
+
+    await expect(
+      provider.generateStructured({
+        messages: [{ role: "user", content: "input" }],
+        maxOutputTokens: 100,
+        outputSchema: {
+          name: "test_output",
+          jsonSchema: { type: "object" },
+          parse: (value) => value,
+        },
+      }),
+    ).resolves.toMatchObject({ output: { value: "ok" } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("verifica a disponibilidade sem expor a chave", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

@@ -16,14 +16,15 @@ export async function POST(request: Request) {
     const result = await interpretActiveResume(user.id, provider);
     return NextResponse.redirect(
       createAppUrl(
-        `/perfil?sucesso=interpretacao&skills=${result.skills}&experiencias=${result.experiences}`,
+        `/perfil?sucesso=interpretacao&skills=${result.skills}&experiencias=${result.experiences}&projetos=${result.projects}&idiomas=${result.languages}&descartados=${result.discarded}`,
       ),
       303,
     );
-  } catch {
-    return NextResponse.redirect(
-      createAppUrl("/perfil?erro=interpretacao"),
-      303,
-    );
+  } catch (error) {
+    const reason =
+      error instanceof Error && error.message.includes("status 429")
+        ? "limite-ia"
+        : "interpretacao";
+    return NextResponse.redirect(createAppUrl(`/perfil?erro=${reason}`), 303);
   }
 }

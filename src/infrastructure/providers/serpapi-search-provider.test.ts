@@ -125,6 +125,37 @@ describe("SerpApiSearchProvider", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("converte o nome localizado do país para a localização canônica", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ jobs_results: [] }), { status: 200 }),
+      );
+    const provider = new SerpApiSearchProvider("secret", fetchMock);
+
+    await provider.search({
+      query: "backend remoto",
+      country: "BR",
+      location: "Brasil",
+      limit: 10,
+    });
+
+    const url = fetchMock.mock.calls[0]?.[0] as URL;
+    expect(url.searchParams.get("location")).toBe("Brazil");
+  });
+
+  it("classifica parâmetros rejeitados como resposta inválida", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 400 }));
+    const provider = new SerpApiSearchProvider("secret", fetchMock);
+
+    await expect(
+      provider.search({ query: "backend remoto", limit: 10 }),
+    ).rejects.toMatchObject({ reason: "invalid_response" });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("não repete erro de autenticação nem expõe a chave", async () => {
     const fetchMock = vi
       .fn()

@@ -14,6 +14,8 @@ const content: DraftResumeContent = {
   language: "PT_BR",
   summary: { text: "Profissional backend.", evidenceFactIds: [experienceId] },
   experiences: [{ factId: experienceId, adaptedText: "Desenvolveu APIs." }],
+  projects: [],
+  languages: [],
   skills: [{ factId: skillId, adaptedText: "TypeScript" }],
 };
 const facts = [

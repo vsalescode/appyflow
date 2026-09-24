@@ -64,6 +64,8 @@ Em `/perfil`, podem ser registrados:
 - senioridade;
 - cidade, região e país;
 - skills;
+- idiomas;
+- projetos pessoais, acadêmicos, de portfólio ou open source;
 - experiências, organizações e datas.
 
 Informações inseridas manualmente são consideradas confirmadas. Experiências
@@ -76,14 +78,25 @@ título, resumo, senioridade e localização, além de sugerir skills e experiê
 Cada fato sugerido precisa apontar uma evidência literal existente no texto do
 PDF.
 
-O processo separa a análise do histórico profissional da auditoria de
-competências. A auditoria percorre também descrições de experiências, projetos,
+O processo organiza separadamente experiências profissionais, projetos, idiomas
+e a auditoria de competências. Projetos pessoais não são apresentados como
+vínculos profissionais, e idiomas humanos não são apresentados como skills
+técnicas. A auditoria percorre também descrições de experiências, projetos,
 cursos e certificações, registra cada competência separadamente e remove
-duplicidades antes de apresentar os fatos para revisão.
+duplicidades antes de apresentar os fatos para revisão. Variações de origem,
+como GitHub, site publicado ou campo vazio, não fazem o mesmo projeto aparecer
+mais de uma vez.
+Linhas explícitas de idiomas também são interpretadas deterministicamente para
+que cada idioma e nível seja registrado separadamente. Novas interpretações
+acrescentam fatos inéditos sem apagar sugestões válidas já encontradas, mesmo
+quando a informação repetida vem de outro arquivo de currículo.
 
 Sugestões da IA não são tratadas como verdade automaticamente. Elas ficam
 pendentes até a pessoa confirmar ou rejeitar cada item. O sistema registra a
 origem da evidência e informações técnicas da geração para auditoria.
+As ações individuais retornam à própria lista para preservar o ponto de revisão.
+Depois de excluir ou rejeitar sugestões incorretas, a pessoa pode confirmar todos
+os fatos pendentes restantes em uma única ação.
 
 Se a IA estiver desabilitada, o perfil continua utilizável por preenchimento
 manual.

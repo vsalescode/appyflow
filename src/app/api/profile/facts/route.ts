@@ -15,12 +15,12 @@ export async function POST(request: Request) {
       Object.fromEntries(await request.formData()),
     );
     return NextResponse.redirect(
-      createAppUrl("/perfil?sucesso=fato"),
+      createAppUrl("/perfil?sucesso=fato#fatos-profissionais"),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      createAppUrl("/perfil?erro=fato"),
+      createAppUrl("/perfil?erro=fato#fatos-profissionais"),
       303,
     );
   }

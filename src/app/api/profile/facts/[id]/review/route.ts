@@ -16,5 +16,8 @@ export async function POST(
   if (decision !== "CONFIRMED" && decision !== "REJECTED")
     return new Response(null, { status: 400 });
   await reviewProfessionalFact(user.id, (await params).id, decision);
-  return NextResponse.redirect(createAppUrl("/perfil"), 303);
+  return NextResponse.redirect(
+    createAppUrl("/perfil?sucesso=revisao#fatos-profissionais"),
+    303,
+  );
 }

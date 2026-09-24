@@ -55,13 +55,14 @@ os arquivos entre reinicializações.
 
 Em `/perfil`, o usuário registra título profissional, senioridade, localização,
 resumo, skills e experiências confirmadas. Nesta etapa os dados são informados
-manualmente ou extraídos do currículo com o adapter inicial da OpenAI. Fatos
+manualmente ou extraídos do currículo com OpenAI ou Groq. Fatos
 extraídos ficam pendentes e exigem confirmação; cada um preserva uma citação
 literal do currículo como evidência.
 
-Para habilitar a interpretação, configure `AI_PROVIDER=openai`, `AI_API_KEY` e
-`AI_MODEL`. A chamada usa saída estruturada e desativa o armazenamento da resposta
-no provedor. Outros nomes de provider permanecem reservados para adapters futuros.
+Para habilitar a interpretação, configure `AI_PROVIDER=openai` ou
+`AI_PROVIDER=groq`, além de `AI_API_KEY` e `AI_MODEL`. As chamadas usam saída
+estruturada e desativam o armazenamento da resposta no provedor. Outros nomes de
+provider permanecem reservados para adapters futuros.
 
 ## Preferências profissionais
 
@@ -192,20 +193,21 @@ em texto puro.
 
 ## Variáveis de ambiente
 
-| Variável          | Obrigatória | Finalidade                                                  |
-| ----------------- | ----------- | ----------------------------------------------------------- |
-| `APP_URL`         | sim         | URL pública da instalação                                   |
-| `DATABASE_URL`    | sim         | conexão com PostgreSQL                                      |
-| `ARTIFACTS_DIR`   | não         | diretório privado de uploads e artefatos                    |
-| `AI_PROVIDER`     | não         | `disabled`, `openai`, `gemini`, `anthropic` ou `openrouter` |
-| `AI_API_KEY`      | condicional | chave server-side quando o provider de IA é habilitado      |
-| `AI_MODEL`        | condicional | modelo usado pelo provider de IA                            |
-| `SEARCH_PROVIDER` | não         | `disabled`, `serpapi` ou `serper`                           |
-| `SEARCH_API_KEY`  | condicional | chave server-side quando a busca é habilitada               |
+| Variável          | Obrigatória | Finalidade                                                          |
+| ----------------- | ----------- | ------------------------------------------------------------------- |
+| `APP_URL`         | sim         | URL pública da instalação                                           |
+| `DATABASE_URL`    | sim         | conexão com PostgreSQL                                              |
+| `ARTIFACTS_DIR`   | não         | diretório privado de uploads e artefatos                            |
+| `AI_PROVIDER`     | não         | `disabled`, `openai`, `groq`, `gemini`, `anthropic` ou `openrouter` |
+| `AI_API_KEY`      | condicional | chave server-side quando o provider de IA é habilitado              |
+| `AI_MODEL`        | condicional | modelo usado pelo provider de IA                                    |
+| `SEARCH_PROVIDER` | não         | `disabled`, `serpapi` ou `serper`                                   |
+| `SEARCH_API_KEY`  | condicional | chave server-side quando a busca é habilitada                       |
 
-Os providers ficam desabilitados por padrão. Os adapters disponíveis são OpenAI
-para interpretação e geração estruturada, além de Serper e SerpApi para pesquisa.
-Os demais nomes configuráveis permanecem reservados para adapters futuros.
+Os providers ficam desabilitados por padrão. Os adapters disponíveis são OpenAI e
+Groq para interpretação e geração estruturada, além de Serper e SerpApi para
+pesquisa. Os demais nomes configuráveis permanecem reservados para adapters
+futuros.
 
 Nunca versione `.env` ou `.env.local`. O arquivo `.env.example` contém apenas
 valores seguros para desenvolvimento.

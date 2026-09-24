@@ -37,6 +37,21 @@ describe("parseProviderConfiguration", () => {
     });
   });
 
+  it("carrega a configuração da Groq", () => {
+    expect(
+      parseProviderConfiguration({
+        AI_PROVIDER: "groq",
+        AI_API_KEY: "groq-secret",
+        AI_MODEL: "openai/gpt-oss-20b",
+      }).ai,
+    ).toEqual({
+      enabled: true,
+      provider: "groq",
+      apiKey: "groq-secret",
+      model: "openai/gpt-oss-20b",
+    });
+  });
+
   it("exige credenciais somente quando o provider está habilitado", () => {
     expect(() =>
       parseProviderConfiguration({ AI_PROVIDER: "anthropic" }),

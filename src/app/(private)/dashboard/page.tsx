@@ -42,23 +42,25 @@ export default async function DashboardPage({
   });
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
       <header className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="text-sm font-semibold text-emerald-700">AppyFlow</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+          <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+            Seu radar profissional
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Oportunidades
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
             Vagas descobertas e classificadas pela aderência ao seu perfil.
           </p>
         </div>
         <form action="/api/search-runs/manual" method="post">
           <button
-            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 hover:bg-emerald-700"
             type="submit"
           >
-            Buscar vagas agora
+            <span className="mr-2">↻</span> Buscar vagas agora
           </button>
         </form>
       </header>
@@ -77,40 +79,42 @@ export default async function DashboardPage({
         </Notice>
       ) : null}
 
-      <section className="mt-8 grid gap-3 sm:grid-cols-5">
+      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {categories.map((category) => (
           <Link
-            className={`rounded-2xl border p-4 transition hover:border-slate-400 ${
+            className={`group rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
               dashboard.filter.category === category.value
-                ? "bg-slate-950 text-white"
-                : "bg-white"
+                ? "border-slate-950 bg-slate-950 text-white shadow-slate-900/15"
+                : "border-slate-200 bg-white hover:border-emerald-300"
             }`}
             href={`?category=${category.value}`}
             key={category.value}
           >
-            <span className="text-sm opacity-75">{category.label}</span>
-            <strong className="mt-1 block text-2xl">
+            <span className="text-xs font-semibold tracking-wide uppercase opacity-65">
+              {category.label}
+            </span>
+            <strong className="mt-2 block text-3xl tracking-tight">
               {dashboard.counts[category.value]}
             </strong>
           </Link>
         ))}
       </section>
 
-      <form className="mt-6 grid gap-3 rounded-2xl border bg-white p-4 sm:grid-cols-[1fr_12rem_auto]">
+      <form className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_12rem_auto]">
         <input
           name="category"
           type="hidden"
           value={dashboard.filter.category}
         />
         <input
-          className="rounded-lg border px-3 py-2 text-sm"
+          className="rounded-xl border bg-slate-50 px-4 py-3 text-sm"
           defaultValue={dashboard.filter.query}
           maxLength={120}
           name="query"
           placeholder="Cargo, empresa ou localização"
         />
         <select
-          className="rounded-lg border bg-white px-3 py-2 text-sm"
+          className="rounded-xl border bg-slate-50 px-4 py-3 text-sm"
           defaultValue={dashboard.filter.workMode}
           name="workMode"
         >
@@ -120,14 +124,19 @@ export default async function DashboardPage({
           <option value="ONSITE">Presencial</option>
           <option value="UNKNOWN">Não informada</option>
         </select>
-        <button className="rounded-lg bg-slate-950 px-5 py-2 text-sm font-semibold text-white">
+        <button className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
           Filtrar
         </button>
       </form>
 
       {!dashboard.jobs.length ? (
-        <div className="mt-8 rounded-2xl border border-dashed bg-white p-10 text-center">
-          <h2 className="font-semibold">Nenhuma oportunidade encontrada</h2>
+        <div className="mt-8 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-50 text-xl text-emerald-700">
+            ⌕
+          </span>
+          <h2 className="mt-4 font-semibold">
+            Nenhuma oportunidade encontrada
+          </h2>
           <p className="mt-2 text-sm text-slate-600">
             Ajuste os filtros ou execute novas buscas para encontrar vagas.
           </p>
@@ -139,19 +148,19 @@ export default async function DashboardPage({
           </Link>
         </div>
       ) : (
-        <ul className="mt-8 grid gap-4 lg:grid-cols-2">
+        <ul className="mt-8 grid gap-4 xl:grid-cols-2">
           {dashboard.jobs.map((job) => {
             const occurrence = job.occurrences[0];
             return (
               <li
-                className="rounded-2xl border bg-white p-5 shadow-sm"
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-200/60"
                 key={job.id}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h2 className="leading-snug font-semibold">
                       <Link
-                        className="hover:text-emerald-700"
+                        className="text-slate-950 group-hover:text-emerald-700"
                         href={`/vagas/${job.id}`}
                       >
                         {job.title}
@@ -212,10 +221,13 @@ export default async function DashboardPage({
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm">
                   <span className="text-slate-500">
-                    Descoberta em {job.discoveredAt.toLocaleDateString("pt-BR")}
+                    {job.publishedAt ? "Publicada" : "Descoberta"} em{" "}
+                    {(job.publishedAt ?? job.discoveredAt).toLocaleDateString(
+                      "pt-BR",
+                    )}
                   </span>
                   <Link
-                    className="font-semibold text-emerald-700"
+                    className="font-semibold text-emerald-700 hover:text-emerald-900"
                     href={`/vagas/${job.id}`}
                   >
                     Ver detalhes →

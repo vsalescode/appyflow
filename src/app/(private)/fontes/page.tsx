@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { listDiscoveredSources } from "@/application/search/source-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
@@ -36,12 +34,14 @@ export default async function SourcesPage({
   const query = await searchParams;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <Link className="text-sm font-medium text-emerald-700" href="/dashboard">
-        ← Voltar ao dashboard
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold">Fontes descobertas</h1>
-      <p className="mt-2 text-slate-600">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Qualidade da descoberta
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+        Fontes descobertas
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         Domínios encontrados durante a normalização e suas métricas observadas.
       </p>
       {query.sucesso ? (
@@ -58,7 +58,10 @@ export default async function SourcesPage({
       ) : (
         <ul className="mt-8 space-y-4">
           {sources.map((source) => (
-            <li className="rounded-2xl border bg-white p-5" key={source.id}>
+            <li
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              key={source.id}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">

@@ -3,6 +3,7 @@ import type { ProviderHealth } from "./provider-health";
 export interface SearchRequest {
   query: string;
   country?: string;
+  location?: string;
   language?: string;
   page?: number;
   limit: number;

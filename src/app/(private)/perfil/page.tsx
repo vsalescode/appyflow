@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { getCandidateProfile } from "@/application/profile/profile-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
@@ -27,12 +25,14 @@ export default async function ProfilePage({
   const query = await searchParams;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <Link className="text-sm font-medium text-emerald-700" href="/dashboard">
-        ← Voltar ao dashboard
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold">Perfil profissional</h1>
-      <p className="mt-2 text-slate-600">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Sua base profissional
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+        Perfil profissional
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         Registre apenas informações verdadeiras e verificáveis.
       </p>
 
@@ -50,8 +50,9 @@ export default async function ProfilePage({
 
       {query.sucesso === "interpretacao" ? (
         <p className="mt-5 text-sm text-emerald-700">
-          Perfil preenchido com os dados do currículo. Revise os campos e
-          confirme ou rejeite os fatos profissionais extraídos.
+          Análise concluída: {query.skills ?? "0"} skills e{" "}
+          {query.experiencias ?? "0"} experiências novas encontradas. Revise os
+          campos e confirme ou rejeite os fatos profissionais extraídos.
         </p>
       ) : query.sucesso ? (
         <p className="mt-5 text-sm text-emerald-700">Alterações salvas.</p>
@@ -64,7 +65,7 @@ export default async function ProfilePage({
 
       <form
         action="/api/profile"
-        className="mt-8 grid gap-5 rounded-2xl border bg-white p-6 sm:grid-cols-2"
+        className="mt-8 grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8"
         method="post"
       >
         <label className="text-sm font-medium sm:col-span-2">
@@ -139,7 +140,7 @@ export default async function ProfilePage({
         <h2 className="text-xl font-semibold">Adicionar fato profissional</h2>
         <form
           action="/api/profile/facts"
-          className="mt-4 grid gap-5 rounded-2xl border bg-white p-6 sm:grid-cols-2"
+          className="mt-4 grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8"
           method="post"
         >
           <label className="text-sm font-medium">
@@ -209,7 +210,10 @@ export default async function ProfilePage({
         ) : (
           <ul className="mt-4 space-y-4">
             {profile.professionalFacts.map((fact) => (
-              <li className="rounded-2xl border bg-white p-5" key={fact.id}>
+              <li
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                key={fact.id}
+              >
                 <div className="flex justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold text-emerald-700">

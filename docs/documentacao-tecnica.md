@@ -183,7 +183,9 @@ Ambos os adapters:
 
 - usa saída JSON com schema estrito;
 - desativa o armazenamento da resposta no provider;
-- limita a quantidade de saída;
+- executa passes separados para perfil/experiências e inventário de skills;
+- audita skills em todas as seções, com itens atômicos e deduplicados;
+- limita a quantidade de saída de cada passe;
 - exige que cada fato contenha uma citação literal do currículo.
 
 Fatos derivados por IA começam como `PENDING` e precisam ser confirmados ou
@@ -206,7 +208,8 @@ O gerador determinístico combina cargo, modalidade, localização e tecnologias
 Também existe geração opcional por IA com saída estruturada. Queries são
 normalizadas e possuem unicidade por perfil.
 
-O contrato `SearchProvider` recebe query, país, idioma, página e limite. Os
+O contrato `SearchProvider` recebe query, país, localização, idioma, página e
+limite. Os
 adapters Serper e SerpApi implementam:
 
 - autenticação server-side;
@@ -217,11 +220,21 @@ adapters Serper e SerpApi implementam:
 - validação da resposta externa;
 - erros internos sem exposição da chave.
 
-O Serper recebe a página diretamente. A SerpApi recebe um deslocamento; seu
-adapter converte a página para `start = (page - 1) * limit` e traduz
-`organic_results` para o modelo comum. O identificador retornado por cada serviço
-é preservado em `requestId`, quando disponível. O worker conhece apenas o
-contrato e seleciona o adapter por `SEARCH_PROVIDER`.
+O adapter da SerpApi usa o engine `google_jobs`, expande a busca em vagas
+individuais e traduz `jobs_results` para o modelo comum. Empresa, localização e
+descrição completa vêm do resultado estruturado; o link é escolhido em
+`apply_options`, apontando para a vaga específica na empresa, ATS ou portal. A
+localização preferida é enviada separadamente para evitar resultados definidos
+pelo proxy do provider. O adapter Serper mantém a busca orgânica como fallback.
+Páginas de listagem nunca são persistidas como vagas individuais. O identificador
+retornado por cada serviço é preservado em `requestId`, quando disponível.
+
+Entre as opções de candidatura, o adapter prioriza URLs do LinkedIn. O campo
+relativo `detected_extensions.posted_at` é convertido em data para expressões em
+português e inglês. Resultados reconhecidamente anteriores a 30 dias são
+descartados, e os demais são ordenados por publicação, com links do LinkedIn como
+desempate. O dashboard aplica a mesma janela, preservando a visibilidade de vagas
+antigas que já tenham candidatura acompanhada.
 
 ### Worker de busca
 

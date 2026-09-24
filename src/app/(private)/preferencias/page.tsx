@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { getPreference } from "@/application/preferences/preference-service";
 import {
@@ -47,14 +45,14 @@ export default async function PreferencesPage({
     : [null, null, []];
   const query = await searchParams;
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <Link className="text-sm font-medium text-emerald-700" href="/dashboard">
-        ← Voltar ao dashboard
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Critérios de descoberta
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
         Preferências profissionais
       </h1>
-      <p className="mt-2 text-slate-600">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         Campos vazios não eliminam vagas. Informe somente critérios relevantes
         para você.
       </p>
@@ -74,7 +72,7 @@ export default async function PreferencesPage({
       ) : null}
       <form
         action="/api/preferences"
-        className="mt-8 grid gap-6 rounded-2xl border bg-white p-6 sm:grid-cols-2"
+        className="mt-8 grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8"
         method="post"
       >
         <ListField
@@ -176,7 +174,7 @@ export default async function PreferencesPage({
         </p>
         <form
           action="/api/search-schedule"
-          className="mt-5 grid gap-5 rounded-2xl border bg-white p-6 sm:grid-cols-2"
+          className="mt-5 grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8"
           method="post"
         >
           <label className="flex items-center gap-3 text-sm font-medium sm:col-span-2">

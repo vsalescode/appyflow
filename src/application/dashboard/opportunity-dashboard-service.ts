@@ -17,11 +17,17 @@ export function parseOpportunityDashboardFilter(input: unknown) {
 export async function getOpportunityDashboard(userId: string, input: unknown) {
   const filter = parseOpportunityDashboardFilter(input);
   const prisma = getPrismaClient();
+  const freshSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000);
   const baseWhere = {
     profile: { userId },
     occurrences: {
       some: { source: { managementStatus: { not: "BLOCKED" as const } } },
     },
+    OR: [
+      { application: { isNot: null } },
+      { publishedAt: { gte: freshSince } },
+      { publishedAt: null, discoveredAt: { gte: freshSince } },
+    ],
   };
   const categoryWhere =
     filter.category === "NEW"
@@ -62,7 +68,11 @@ export async function getOpportunityDashboard(userId: string, input: unknown) {
           },
         },
       },
-      orderBy: [{ match: { score: "desc" } }, { discoveredAt: "desc" }],
+      orderBy: [
+        { publishedAt: { sort: "desc", nulls: "last" } },
+        { match: { score: "desc" } },
+        { discoveredAt: "desc" },
+      ],
       take: 50,
     }),
     prisma.job.count({ where: baseWhere }),

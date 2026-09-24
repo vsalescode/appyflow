@@ -18,8 +18,14 @@ export default async function LoginPage({
     redirect("/dashboard");
   const query = await searchParams;
   return (
-    <section className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-3xl font-semibold">Entrar</h1>
+    <section className="w-full rounded-3xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50 sm:p-9">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Bem-vindo de volta
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight">Entrar</h1>
+      <p className="mt-2 text-sm text-slate-500">
+        Acesse seu workspace profissional.
+      </p>
       {query.erro && (
         <p className="mt-4 text-sm text-red-700">Email ou senha inválidos.</p>
       )}
@@ -27,7 +33,7 @@ export default async function LoginPage({
         <label className="block text-sm font-medium">
           Email
           <input
-            className="mt-1 w-full rounded-lg border p-3"
+            className="mt-2 w-full rounded-xl border bg-slate-50 p-3.5"
             name="email"
             type="email"
             required
@@ -37,7 +43,7 @@ export default async function LoginPage({
         <label className="block text-sm font-medium">
           Senha
           <input
-            className="mt-1 w-full rounded-lg border p-3"
+            className="mt-2 w-full rounded-xl border bg-slate-50 p-3.5"
             name="password"
             type="password"
             required
@@ -45,7 +51,7 @@ export default async function LoginPage({
           />
         </label>
         <button
-          className="w-full rounded-lg bg-emerald-700 p-3 font-semibold text-white"
+          className="w-full rounded-xl bg-emerald-600 p-3.5 font-bold text-white shadow-lg shadow-emerald-900/15 hover:bg-emerald-700"
           type="submit"
         >
           Entrar

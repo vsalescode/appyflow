@@ -76,6 +76,11 @@ título, resumo, senioridade e localização, além de sugerir skills e experiê
 Cada fato sugerido precisa apontar uma evidência literal existente no texto do
 PDF.
 
+O processo separa a análise do histórico profissional da auditoria de
+competências. A auditoria percorre também descrições de experiências, projetos,
+cursos e certificações, registra cada competência separadamente e remove
+duplicidades antes de apresentar os fatos para revisão.
+
 Sugestões da IA não são tratadas como verdade automaticamente. Elas ficam
 pendentes até a pessoa confirmar ou rejeitar cada item. O sistema registra a
 origem da evidência e informações técnicas da geração para auditoria.
@@ -120,13 +125,20 @@ execuções.
 
 O repositório contém adapters para receber resultados do Serper ou da SerpApi. A
 instalação escolhe um deles por configuração, e o restante do fluxo recebe o mesmo
-formato interno independentemente do serviço selecionado.
+formato interno independentemente do serviço selecionado. Com SerpApi, páginas de
+pesquisa são expandidas em vagas individuais: cada oportunidade possui empresa,
+descrição e link direto de candidatura antes de entrar no dashboard.
+
+Links diretos do LinkedIn são priorizados quando oferecidos pelo resultado
+estruturado. O sistema converte datas relativas conhecidas, descarta vagas com
+mais de 30 dias e apresenta primeiro as publicações mais recentes. Vagas cuja
+data não foi informada continuam identificadas pelo instante de descoberta.
 
 Quando um resultado é processado, o sistema pode normalizar:
 
 - título;
 - empresa;
-- descrição resumida;
+- descrição da vaga disponível no provider;
 - localização;
 - modalidade de trabalho;
 - URL;
@@ -134,9 +146,9 @@ Quando um resultado é processado, o sistema pode normalizar:
 - data de publicação;
 - instante em que foi descoberto.
 
-Informação ausente permanece desconhecida. Por exemplo, uma data como “há dois
-dias” é preservada como texto, mas não é convertida em uma data exata sem base
-confiável.
+Informação ausente permanece desconhecida. Datas relativas reconhecidas usam o
+instante da busca como referência; expressões não reconhecidas permanecem apenas
+como o texto informado pela fonte.
 
 ### Deduplicação
 
@@ -160,8 +172,9 @@ permanecem separados para evitar esconder oportunidades diferentes.
 6. Preferências ausentes não funcionam como bloqueios.
 7. Termos e empresas explicitamente excluídos devem ser respeitados.
 8. Vagas deduplicadas preservam suas ocorrências e origens.
-9. Resultados inválidos podem ser rejeitados sem invalidar todo o lote.
-10. O sistema não envia candidaturas automaticamente.
+9. Páginas de pesquisa ou listas de vagas não são tratadas como oportunidades.
+10. Resultados inválidos podem ser rejeitados sem invalidar todo o lote.
+11. O sistema não envia candidaturas automaticamente.
 
 ## Privacidade e controle
 

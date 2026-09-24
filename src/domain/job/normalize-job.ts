@@ -57,6 +57,48 @@ export function canonicalizeJobUrl(value: string) {
   return url.toString();
 }
 
+export function resolveJobDetailUrl(value: string, title: string) {
+  const canonical = canonicalizeJobUrl(value);
+  const url = new URL(canonical);
+  const hostname = url.hostname.replace(/^www\./, "");
+
+  if (hostname.endsWith("indeed.com")) {
+    const jobKey = url.searchParams.get("jk") ?? url.searchParams.get("vjk");
+    if (!jobKey || !/^[a-z0-9]+$/i.test(jobKey))
+      throw new InvalidSearchResultError();
+    return `${url.origin}/viewjob?jk=${encodeURIComponent(jobKey)}`;
+  }
+
+  if (hostname === "linkedin.com" || hostname.endsWith(".linkedin.com")) {
+    const currentJobId = url.searchParams.get("currentJobId");
+    if (currentJobId && /^\d+$/.test(currentJobId))
+      return `https://www.linkedin.com/jobs/view/${currentJobId}`;
+    if (!/^\/jobs\/view\//.test(url.pathname))
+      throw new InvalidSearchResultError();
+  }
+
+  if (isListingTitle(title) || isListingPath(url.pathname))
+    throw new InvalidSearchResultError();
+  return canonical;
+}
+
+function isListingTitle(value: string) {
+  const title = foldIdentity(value);
+  return (
+    /^\d+\+? (jobs|vagas|empregos)\b/.test(title) ||
+    /^(jobs|vagas|empregos) (de|para|em|in)\b/.test(title) ||
+    /\b(job search|pesquisa de vagas|resultados de busca)\b/.test(title)
+  );
+}
+
+function isListingPath(pathname: string) {
+  const path = pathname.toLowerCase().replace(/\/+$/, "");
+  return (
+    /\/(jobs?|vagas?|careers?)\/search(?:\/|$)/.test(path) ||
+    /^\/(jobs?|vagas?|careers?)$/.test(path)
+  );
+}
+
 function foldIdentity(value: string) {
   return value
     .normalize("NFKD")
@@ -101,7 +143,7 @@ function parsePublishedDate(value: string | undefined) {
 export function normalizeSearchResult(item: SearchResultItem): NormalizedJob {
   const parsed = resultSchema.safeParse(item);
   if (!parsed.success) throw new InvalidSearchResultError();
-  const canonicalUrl = canonicalizeJobUrl(parsed.data.url);
+  const canonicalUrl = resolveJobDetailUrl(parsed.data.url, parsed.data.title);
   const url = new URL(canonicalUrl);
   const title = normalizeWhitespace(parsed.data.title);
   const company = parsed.data.company

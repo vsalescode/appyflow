@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { listSearchQueries } from "@/application/search/query-generator";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
@@ -16,12 +14,14 @@ export default async function QueriesPage({
   const query = await searchParams;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <Link className="text-sm font-medium text-emerald-700" href="/dashboard">
-        ← Voltar ao dashboard
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold">Queries de busca</h1>
-      <p className="mt-2 text-slate-600">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Estratégia de busca
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+        Queries de busca
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         Gere e revise as consultas que serão usadas por um SearchProvider em uma
         etapa posterior.
       </p>
@@ -74,7 +74,10 @@ export default async function QueriesPage({
         ) : (
           <ul className="mt-4 space-y-3">
             {queries.map((item) => (
-              <li className="rounded-xl border bg-white p-4" key={item.id}>
+              <li
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                key={item.id}
+              >
                 <p className="font-medium">{item.query}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {item.origin === "AI"

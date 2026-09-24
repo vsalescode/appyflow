@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { reviewProfessionalFact } from "@/application/profile/resume-interpretation-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 
 export async function POST(
   request: Request,
@@ -16,5 +16,5 @@ export async function POST(
   if (decision !== "CONFIRMED" && decision !== "REJECTED")
     return new Response(null, { status: 400 });
   await reviewProfessionalFact(user.id, (await params).id, decision);
-  return NextResponse.redirect(new URL("/perfil", request.url), 303);
+  return NextResponse.redirect(createAppUrl("/perfil"), 303);
 }

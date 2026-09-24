@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { updateApplicationStatus } from "@/application/application/application-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 
 export async function POST(
   request: Request,
@@ -17,12 +17,12 @@ export async function POST(
     const status = (await request.formData()).get("status");
     await updateApplicationStatus(user.id, jobId, status);
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?sucesso=pipeline`, request.url),
+      createAppUrl(`/vagas/${jobId}?sucesso=pipeline`),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?erro=pipeline`, request.url),
+      createAppUrl(`/vagas/${jobId}?erro=pipeline`),
       303,
     );
   }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { hasTrustedOrigin } from "./origin";
+import { createAppUrl, hasTrustedOrigin } from "./origin";
 
 const previousAppUrl = process.env.APP_URL;
 const previousDatabaseUrl = process.env.DATABASE_URL;
@@ -42,5 +42,16 @@ describe("hasTrustedOrigin", () => {
         new Request("https://appyflow.example.com/api/auth/logout"),
       ),
     ).toBe(false);
+  });
+});
+
+describe("createAppUrl", () => {
+  it("usa a URL publica configurada em vez do endereco interno do servidor", () => {
+    process.env.APP_URL = "http://localhost:3000";
+    process.env.DATABASE_URL = "postgresql://user:password@localhost:5432/app";
+
+    expect(createAppUrl("/dashboard").href).toBe(
+      "http://localhost:3000/dashboard",
+    );
   });
 });

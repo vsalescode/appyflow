@@ -1,7 +1,9 @@
+import { NextResponse } from "next/server";
+
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { analyzeJobMatchWithAI } from "@/application/search/ai-matching-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 import { getAIProvider } from "@/infrastructure/providers/ai-provider-factory";
 
 export async function POST(
@@ -17,14 +19,13 @@ export async function POST(
     if (!provider) throw new Error("AI disabled");
     await analyzeJobMatchWithAI(user.id, jobId, provider);
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?sucesso=analise`, request.url),
+      createAppUrl(`/vagas/${jobId}?sucesso=analise`),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?erro=analise`, request.url),
+      createAppUrl(`/vagas/${jobId}?erro=analise`),
       303,
     );
   }
 }
-import { NextResponse } from "next/server";

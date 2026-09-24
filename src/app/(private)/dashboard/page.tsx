@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { getOpportunityDashboard } from "@/application/dashboard/opportunity-dashboard-service";
@@ -32,8 +33,9 @@ export default async function DashboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await getUserBySessionToken(await readSessionCookie());
+  if (!user) redirect("/login");
   const params = await searchParams;
-  const dashboard = await getOpportunityDashboard(user!.id, {
+  const dashboard = await getOpportunityDashboard(user.id, {
     category: first(params.category) ?? "ALL",
     workMode: first(params.workMode) ?? "ALL",
     query: first(params.query) ?? "",

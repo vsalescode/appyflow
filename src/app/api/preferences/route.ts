@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { savePreference } from "@/application/preferences/preference-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 
 const lines = (value: FormDataEntryValue | null) =>
   typeof value === "string"
@@ -34,12 +34,12 @@ export async function POST(request: Request) {
       excludedKeywords: lines(form.get("excludedKeywords")),
     });
     return NextResponse.redirect(
-      new URL("/preferencias?sucesso=preferencias", request.url),
+      createAppUrl("/preferencias?sucesso=preferencias"),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL("/preferencias?erro=preferencias", request.url),
+      createAppUrl("/preferencias?erro=preferencias"),
       303,
     );
   }

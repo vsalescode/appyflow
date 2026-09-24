@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prepareApplication } from "@/application/application/application-preparation-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
 import { readSessionCookie } from "@/infrastructure/auth/cookie";
-import { hasTrustedOrigin } from "@/infrastructure/auth/origin";
+import { createAppUrl, hasTrustedOrigin } from "@/infrastructure/auth/origin";
 import { getAIProvider } from "@/infrastructure/providers/ai-provider-factory";
 
 export async function POST(
@@ -22,12 +22,12 @@ export async function POST(
     );
     await prepareApplication(user.id, jobId, language, provider);
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?sucesso=preparacao`, request.url),
+      createAppUrl(`/vagas/${jobId}?sucesso=preparacao`),
       303,
     );
   } catch {
     return NextResponse.redirect(
-      new URL(`/vagas/${jobId}?erro=preparacao`, request.url),
+      createAppUrl(`/vagas/${jobId}?erro=preparacao`),
       303,
     );
   }

@@ -28,8 +28,8 @@ servidor.
 | Testes | Vitest |
 | PDF de entrada | PDF.js |
 | Containers | Docker e Docker Compose |
-| IA implementada | OpenAI Responses API |
-| Busca implementada | Serper |
+| IA implementada | OpenAI Responses API e Groq Chat Completions |
+| Busca implementada | Serper e SerpApi |
 
 ## Arquitetura do repositório
 
@@ -54,8 +54,8 @@ Serviços de aplicação
    +--> contratos de providers e storage
    +--> Prisma Client --> PostgreSQL
    +--> adapters externos
-          |-- OpenAI
-          |-- Serper
+          |-- OpenAI e Groq
+          |-- Serper e SerpApi
           `-- filesystem privado
 
 Worker de busca
@@ -133,7 +133,7 @@ As variáveis aceitas estão documentadas em `.env.example`.
 | `APP_URL` | origem pública confiável da aplicação |
 | `DATABASE_URL` | conexão PostgreSQL |
 | `ARTIFACTS_DIR` | diretório privado para currículos e artefatos |
-| `AI_PROVIDER` | `disabled`, `openai` ou nome reservado para adapter futuro |
+| `AI_PROVIDER` | `disabled`, `openai`, `groq` ou nome reservado para adapter futuro |
 | `AI_API_KEY` | credencial server-side do provider de IA |
 | `AI_MODEL` | modelo usado pelo adapter de IA |
 | `SEARCH_PROVIDER` | `disabled`, `serper` ou `serpapi` |
@@ -174,7 +174,12 @@ um currículo permanece ativo.
 experiências são representadas por `ProfessionalFact`.
 
 Fatos cadastrados manualmente começam confirmados. A interpretação por IA usa o
-contrato `AIProvider` e o adapter da OpenAI. A chamada:
+contrato `AIProvider` e um dos adapters disponíveis:
+
+- OpenAI pela Responses API;
+- Groq pela API compatível de Chat Completions.
+
+Ambos os adapters:
 
 - usa saída JSON com schema estrito;
 - desativa o armazenamento da resposta no provider;
@@ -338,7 +343,6 @@ repositório como fluxos completos:
 
 - deploy no Render;
 - observabilidade operacional completa;
-- segundo adapter de IA ou busca.
 
 Essa separação evita que decisões planejadas sejam confundidas com capacidades
 disponíveis na versão atual.

@@ -11,7 +11,7 @@ const optionalValue = z.preprocess(
 const providerEnvironmentSchema = z
   .object({
     AI_PROVIDER: z
-      .enum(["disabled", "openai", "gemini", "anthropic", "openrouter"])
+      .enum(["disabled", "openai", "groq", "gemini", "anthropic", "openrouter"])
       .default("disabled"),
     AI_API_KEY: optionalValue,
     AI_MODEL: optionalValue,

@@ -59,6 +59,11 @@ manualmente ou extraídos do currículo com OpenAI ou Groq. Fatos
 extraídos ficam pendentes e exigem confirmação; cada um preserva uma citação
 literal do currículo como evidência.
 
+A interpretação executa duas análises focadas: uma para perfil e experiências e
+outra para auditar competências em todas as seções do PDF. Tecnologias citadas em
+projetos e descrições de experiências também são consideradas, com uma skill por
+item e deduplicação antes da revisão.
+
 Para habilitar a interpretação, configure `AI_PROVIDER=openai` ou
 `AI_PROVIDER=groq`, além de `AI_API_KEY` e `AI_MODEL`. As chamadas usam saída
 estruturada e desativam o armazenamento da resposta no provedor. Outros nomes de
@@ -85,6 +90,13 @@ transitórias, limitam cada página a dez resultados e não expõem a chave em
 mensagens de erro. O worker conecta o adapter selecionado à normalização,
 deduplicação, filtragem, matching e persistência das vagas.
 
+Na SerpApi, a busca usa resultados estruturados do Google Jobs. Cada item contém
+uma vaga individual, descrição e link de candidatura obtido de `apply_options`;
+páginas genéricas de pesquisa do LinkedIn, Indeed e outros portais não são salvas
+como oportunidades. Quando existe uma opção direta do LinkedIn, ela é priorizada.
+Datas relativas são convertidas, resultados comprovadamente anteriores a 30 dias
+são descartados e os mais recentes aparecem primeiro.
+
 Depois de gerar as queries, o botão `Buscar vagas agora` em `/queries` ou no
 dashboard executa um ciclo único e registra seu resultado no histórico. Essa
 ação não ativa a busca automática.
@@ -92,7 +104,8 @@ ação não ativa a busca automática.
 Os resultados do contrato de busca podem ser convertidos para o modelo interno de
 vaga, com título, empresa, descrição, localização, modalidade, URL, fonte, data
 publicada e instante de descoberta. Campos ausentes continuam desconhecidos e
-datas relativas são preservadas sem conversão especulativa.
+datas relativas reconhecidas são convertidas tomando o instante da busca como
+referência.
 
 URLs de vagas são canonicalizadas removendo fragmentos, parâmetros conhecidos de
 rastreamento e diferenças semânticas irrelevantes. Um fingerprint conservador

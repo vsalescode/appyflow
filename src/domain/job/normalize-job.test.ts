@@ -5,6 +5,7 @@ import {
   createJobFingerprint,
   InvalidSearchResultError,
   normalizeSearchResult,
+  resolveJobDetailUrl,
 } from "./normalize-job";
 
 describe("normalizeSearchResult", () => {
@@ -73,6 +74,33 @@ describe("normalizeSearchResult", () => {
   it("rejeita URLs que não sejam HTTP ou HTTPS", () => {
     expect(() =>
       normalizeSearchResult({ title: "Engineer", url: "file:///etc/passwd" }),
+    ).toThrow(InvalidSearchResultError);
+  });
+
+  it("transforma uma listagem selecionada do Indeed na vaga direta", () => {
+    expect(
+      resolveJobDetailUrl(
+        "https://br.indeed.com/q-backend-remoto-vagas.html?vjk=00b049bdcb552bd2",
+        "Desenvolvedor Backend Júnior",
+      ),
+    ).toBe("https://br.indeed.com/viewjob?jk=00b049bdcb552bd2");
+  });
+
+  it("transforma uma busca do LinkedIn com vaga selecionada em link direto", () => {
+    expect(
+      resolveJobDetailUrl(
+        "https://www.linkedin.com/jobs/search/?keywords=backend&currentJobId=123456",
+        "Backend Engineer",
+      ),
+    ).toBe("https://www.linkedin.com/jobs/view/123456");
+  });
+
+  it("não aceita uma página de resultados como uma vaga individual", () => {
+    expect(() =>
+      normalizeSearchResult({
+        title: "1000+ Junior Software Engineer jobs in São Paulo",
+        url: "https://www.linkedin.com/jobs/search/?keywords=junior",
+      }),
     ).toThrow(InvalidSearchResultError);
   });
 });

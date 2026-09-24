@@ -8,13 +8,19 @@ import type {
 } from "@/application/providers/ai-provider";
 import { getPrismaClient } from "@/infrastructure/database/prisma";
 
-const extractedFactSchema = z.object({
-  type: z.enum(["SKILL", "EXPERIENCE"]),
+const extractedExperienceSchema = z.object({
+  type: z.literal("EXPERIENCE"),
   title: z.string().min(1).max(160),
-  organization: z.string().max(160).nullable(),
+  organization: z.string().min(1).max(160),
   description: z.string().max(4_000).nullable(),
   startedAt: z.string().date().nullable(),
   endedAt: z.string().date().nullable(),
+  evidenceQuote: z.string().min(1).max(2_000),
+});
+
+const extractedSkillSchema = z.object({
+  title: z.string().min(1).max(160),
+  description: z.string().max(1_000).nullable(),
   evidenceQuote: z.string().min(1).max(2_000),
 });
 
@@ -35,24 +41,54 @@ const extractedProfileSchema = z.object({
     .nullable(),
   city: z.string().min(1).max(120).nullable(),
   region: z.string().min(1).max(120).nullable(),
-  country: z.string().regex(/^[A-Z]{2}$/).nullable(),
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/)
+    .nullable(),
 });
 
-const interpretationSchema = z.object({
+const careerInterpretationSchema = z.object({
   profile: extractedProfileSchema,
-  facts: z.array(extractedFactSchema).max(50),
+  experiences: z.array(extractedExperienceSchema).max(40),
 });
-type Interpretation = z.infer<typeof interpretationSchema>;
+const skillInterpretationSchema = z.object({
+  skills: z.array(extractedSkillSchema).max(120),
+});
 
-export const resumeInterpretationOutputSchema: StructuredOutputSchema<Interpretation> =
+type CareerInterpretation = z.infer<typeof careerInterpretationSchema>;
+type SkillInterpretation = z.infer<typeof skillInterpretationSchema>;
+
+export const resumeCareerOutputSchema: StructuredOutputSchema<CareerInterpretation> =
   {
-    name: "resume_interpretation",
-    jsonSchema: z.toJSONSchema(interpretationSchema) as Record<string, unknown>,
-    parse: (value) => interpretationSchema.parse(value),
+    name: "resume_career_interpretation",
+    jsonSchema: z.toJSONSchema(careerInterpretationSchema) as Record<
+      string,
+      unknown
+    >,
+    parse: (value) => careerInterpretationSchema.parse(value),
+  };
+
+export const resumeSkillsOutputSchema: StructuredOutputSchema<SkillInterpretation> =
+  {
+    name: "resume_skills_interpretation",
+    jsonSchema: z.toJSONSchema(skillInterpretationSchema) as Record<
+      string,
+      unknown
+    >,
+    parse: (value) => skillInterpretationSchema.parse(value),
   };
 
 function normalizeEvidence(value: string) {
   return value.normalize("NFKC").replace(/\s+/g, " ").trim();
+}
+
+function normalizeIdentity(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export async function interpretActiveResume(
@@ -65,37 +101,79 @@ export async function interpretActiveResume(
   });
   if (!resume) throw new Error("Currículo mestre não encontrado.");
 
-  const result = await provider.generateStructured({
+  const careerResult = await provider.generateStructured({
     messages: [
       {
         role: "system",
         content:
-          "Extraia um perfil profissional e somente skills e experiências sustentadas pelo currículo. Produza headline e summary concisos usando apenas informações presentes no documento. Use null para localização ou outros campos ausentes; nunca invente, complete ou estime dados. country deve ser um código ISO 3166-1 alpha-2 maiúsculo. Cada fato deve conter em evidenceQuote uma citação literal do currículo.",
+          "Analise integralmente o currículo e extraia o perfil e todas as experiências profissionais explicitamente descritas. Examine resumo, histórico profissional, projetos, formação, cursos e certificações. Preserve cargos, organizações e realizações relevantes. Produza headline e summary factuais e abrangentes usando somente o documento. Não extraia skills nesta etapa. Use null para localização, datas ou outros campos ausentes; não invente nem estime. Só informe datas quando o dia, mês e ano estiverem explícitos e use YYYY-MM-DD. country deve ser um código ISO 3166-1 alpha-2 maiúsculo. Cada experiência deve conter em evidenceQuote uma citação literal e contínua do currículo que comprove o vínculo; a descrição pode consolidar outras informações explícitas do mesmo vínculo sem criar resultados, números ou responsabilidades.",
       },
       { role: "user", content: resume.extractedText },
     ],
-    outputSchema: resumeInterpretationOutputSchema,
-    maxOutputTokens: 4_000,
+    outputSchema: resumeCareerOutputSchema,
+    maxOutputTokens: 6_000,
+    temperature: 0,
+  });
+  const skillResult = await provider.generateStructured({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Faça uma auditoria profunda e exaustiva das competências explicitamente presentes no currículo. Procure em TODAS as seções e em cada descrição de experiência, projeto, curso e certificação — não apenas na seção de habilidades. Inclua, quando citados: linguagens de programação; frameworks e bibliotecas; bancos e armazenamento; cloud; DevOps e infraestrutura; testes e qualidade; APIs e protocolos; arquitetura e práticas de engenharia; segurança; dados; sistemas operacionais; ferramentas; metodologias; idiomas; e competências profissionais ou de domínio nomeadas explicitamente. Retorne uma competência atômica por item (por exemplo, TypeScript e Node.js em itens distintos), com nome curto e canônico. Não agrupe várias tecnologias no title, não crie sinônimos como itens adicionais, não infira competência a partir de cargo ou responsabilidade e não estime nível ou tempo de experiência. Cada item deve conter uma evidenceQuote literal e contínua do currículo onde o termo aparece. Revise o documento uma segunda vez antes de finalizar para localizar itens omitidos.",
+      },
+      { role: "user", content: resume.extractedText },
+    ],
+    outputSchema: resumeSkillsOutputSchema,
+    maxOutputTokens: 8_000,
     temperature: 0,
   });
 
   const source = normalizeEvidence(resume.extractedText);
-  for (const fact of result.output.facts) {
+  const generatedFacts = [
+    ...careerResult.output.experiences.map((fact) => ({
+      ...fact,
+      aiModel: careerResult.model,
+      aiRequestId: careerResult.requestId,
+    })),
+    ...skillResult.output.skills.map((skill) => ({
+      type: "SKILL" as const,
+      title: skill.title,
+      organization: null,
+      description: skill.description,
+      startedAt: null,
+      endedAt: null,
+      evidenceQuote: skill.evidenceQuote,
+      aiModel: skillResult.model,
+      aiRequestId: skillResult.requestId,
+    })),
+  ];
+
+  for (const fact of generatedFacts) {
     if (!source.includes(normalizeEvidence(fact.evidenceQuote)))
       throw new Error("A interpretação contém fato sem evidência literal.");
-    if (fact.type === "EXPERIENCE" && !fact.organization)
-      throw new Error("Experiência sem organização não pode ser importada.");
     if (fact.startedAt && fact.endedAt && fact.endedAt < fact.startedAt)
       throw new Error("A interpretação contém datas inválidas.");
   }
 
+  const uniqueFacts = generatedFacts.filter(
+    (fact, index, facts) =>
+      facts.findIndex(
+        (candidate) =>
+          candidate.type === fact.type &&
+          normalizeIdentity(candidate.title) ===
+            normalizeIdentity(fact.title) &&
+          normalizeIdentity(candidate.organization ?? "") ===
+            normalizeIdentity(fact.organization ?? ""),
+      ) === index,
+  );
+
   const profileData = {
-    headline: result.output.profile.headline ?? undefined,
-    summary: result.output.profile.summary ?? undefined,
-    seniority: result.output.profile.seniority ?? undefined,
-    city: result.output.profile.city ?? undefined,
-    region: result.output.profile.region ?? undefined,
-    country: result.output.profile.country ?? undefined,
+    headline: careerResult.output.profile.headline ?? undefined,
+    summary: careerResult.output.profile.summary ?? undefined,
+    seniority: careerResult.output.profile.seniority ?? undefined,
+    city: careerResult.output.profile.city ?? undefined,
+    region: careerResult.output.profile.region ?? undefined,
+    country: careerResult.output.profile.country ?? undefined,
   };
 
   return prisma.$transaction(async (transaction) => {
@@ -111,28 +189,52 @@ export async function interpretActiveResume(
         reviewStatus: "PENDING",
       },
     });
-    await transaction.professionalFact.createMany({
-      data: result.output.facts.map((fact) => ({
-        id: randomUUID(),
-        profileId: profile.id,
-        sourceResumeId: resume.id,
-        reviewStatus: "PENDING" as const,
-        type: fact.type,
-        title: fact.title,
-        organization: fact.organization,
-        description: fact.description,
-        startedAt: fact.startedAt
-          ? new Date(`${fact.startedAt}T00:00:00.000Z`)
-          : null,
-        endedAt: fact.endedAt
-          ? new Date(`${fact.endedAt}T00:00:00.000Z`)
-          : null,
-        evidenceQuote: fact.evidenceQuote,
-        aiModel: result.model,
-        aiRequestId: result.requestId,
-      })),
+
+    const existingFacts = await transaction.professionalFact.findMany({
+      where: { profileId: profile.id, sourceResumeId: resume.id },
+      select: { type: true, title: true, organization: true },
     });
-    return { count: result.output.facts.length };
+    const newFacts = uniqueFacts.filter(
+      (fact) =>
+        !existingFacts.some(
+          (existing) =>
+            existing.type === fact.type &&
+            normalizeIdentity(existing.title) ===
+              normalizeIdentity(fact.title) &&
+            normalizeIdentity(existing.organization ?? "") ===
+              normalizeIdentity(fact.organization ?? ""),
+        ),
+    );
+
+    if (newFacts.length) {
+      await transaction.professionalFact.createMany({
+        data: newFacts.map((fact) => ({
+          id: randomUUID(),
+          profileId: profile.id,
+          sourceResumeId: resume.id,
+          reviewStatus: "PENDING" as const,
+          type: fact.type,
+          title: fact.title,
+          organization: fact.organization,
+          description: fact.description,
+          startedAt: fact.startedAt
+            ? new Date(`${fact.startedAt}T00:00:00.000Z`)
+            : null,
+          endedAt: fact.endedAt
+            ? new Date(`${fact.endedAt}T00:00:00.000Z`)
+            : null,
+          evidenceQuote: fact.evidenceQuote,
+          aiModel: fact.aiModel,
+          aiRequestId: fact.aiRequestId,
+        })),
+      });
+    }
+
+    return {
+      count: newFacts.length,
+      skills: newFacts.filter((fact) => fact.type === "SKILL").length,
+      experiences: newFacts.filter((fact) => fact.type === "EXPERIENCE").length,
+    };
   });
 }
 

@@ -38,12 +38,16 @@ async function createResume() {
   return { user, resume };
 }
 
-function fakeProvider(output: unknown): AIProvider {
+function fakeProvider(careerOutput: unknown, skillOutput: unknown): AIProvider {
   return {
     name: "fake",
     checkHealth: async () => ({ status: "available" }),
     generateStructured: async (request) => ({
-      output: request.outputSchema.parse(output),
+      output: request.outputSchema.parse(
+        request.outputSchema.name === "resume_career_interpretation"
+          ? careerOutput
+          : skillOutput,
+      ),
       model: "fake-model",
       requestId: "request-1",
       usage: { inputTokens: 10, outputTokens: 5 },
@@ -56,27 +60,28 @@ describe("resume interpretation", () => {
     const { user, resume } = await createResume();
     await interpretActiveResume(
       user.id,
-      fakeProvider({
-        profile: {
-          headline: "Backend Engineer",
-          summary: "Backend Engineer com experiência em TypeScript.",
-          seniority: "MID_LEVEL",
-          city: null,
-          region: null,
-          country: null,
-        },
-        facts: [
-          {
-            type: "SKILL",
-            title: "TypeScript",
-            organization: null,
-            description: null,
-            startedAt: null,
-            endedAt: null,
-            evidenceQuote: "TypeScript",
+      fakeProvider(
+        {
+          profile: {
+            headline: "Backend Engineer",
+            summary: "Backend Engineer com experiência em TypeScript.",
+            seniority: "MID_LEVEL",
+            city: null,
+            region: null,
+            country: null,
           },
-        ],
-      }),
+          experiences: [],
+        },
+        {
+          skills: [
+            {
+              title: "TypeScript",
+              description: null,
+              evidenceQuote: "TypeScript",
+            },
+          ],
+        },
+      ),
     );
     await expect(prisma.professionalFact.findFirst()).resolves.toMatchObject({
       sourceResumeId: resume.id,
@@ -99,27 +104,28 @@ describe("resume interpretation", () => {
     await expect(
       interpretActiveResume(
         user.id,
-        fakeProvider({
-          profile: {
-            headline: "Backend Engineer",
-            summary: null,
-            seniority: "UNSPECIFIED",
-            city: null,
-            region: null,
-            country: null,
-          },
-          facts: [
-            {
-              type: "SKILL",
-              title: "Kubernetes",
-              organization: null,
-              description: null,
-              startedAt: null,
-              endedAt: null,
-              evidenceQuote: "Kubernetes avançado",
+        fakeProvider(
+          {
+            profile: {
+              headline: "Backend Engineer",
+              summary: null,
+              seniority: "UNSPECIFIED",
+              city: null,
+              region: null,
+              country: null,
             },
-          ],
-        }),
+            experiences: [],
+          },
+          {
+            skills: [
+              {
+                title: "Kubernetes",
+                description: null,
+                evidenceQuote: "Kubernetes avançado",
+              },
+            ],
+          },
+        ),
       ),
     ).rejects.toThrow("sem evidência literal");
     await expect(prisma.professionalFact.count()).resolves.toBe(0);

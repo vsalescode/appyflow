@@ -39,7 +39,7 @@ export default async function JobDetailsPage({
   const applicationStatus = job.application?.status ?? "FOUND";
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
       <Link
         className="text-sm font-semibold text-emerald-700"
         href="/dashboard"
@@ -65,7 +65,7 @@ export default async function JobDetailsPage({
         <Notice tone="error">Não foi possível preparar a candidatura.</Notice>
       )}
 
-      <header className="mt-6 rounded-2xl border bg-white p-6">
+      <header className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">
@@ -308,7 +308,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-6 rounded-2xl border bg-white p-6">
+    <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>
       {children}
     </section>

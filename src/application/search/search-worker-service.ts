@@ -16,6 +16,7 @@ interface WorkerQuery {
   query: string;
   userId: string;
   country?: string;
+  location?: string;
 }
 
 export interface SearchWorkerOptions {
@@ -60,7 +61,15 @@ function defaultDependencies(): SearchWorkerDependencies {
           select: {
             id: true,
             query: true,
-            profile: { select: { userId: true, country: true } },
+            profile: {
+              select: {
+                userId: true,
+                country: true,
+                city: true,
+                region: true,
+                preference: { select: { locations: true } },
+              },
+            },
           },
           orderBy: { createdAt: "asc" },
           take: options.maxQueries,
@@ -71,6 +80,12 @@ function defaultDependencies(): SearchWorkerDependencies {
             query: item.query,
             userId: item.profile.userId,
             country: item.profile.country ?? undefined,
+            location:
+              item.profile.preference?.locations[0] ??
+              ([item.profile.city, item.profile.region]
+                .filter(Boolean)
+                .join(", ") ||
+                undefined),
           })),
         ),
     normalize: normalizeAndStoreSearchResults,
@@ -100,6 +115,7 @@ export async function runSearchWorker(
       const result = await provider.search({
         query: query.query,
         country: query.country,
+        location: query.location,
         page: 1,
         limit: resultsPerQuery,
       });

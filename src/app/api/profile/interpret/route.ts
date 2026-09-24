@@ -13,9 +13,11 @@ export async function POST(request: Request) {
   try {
     const provider = getAIProvider();
     if (!provider) throw new Error("AI disabled");
-    await interpretActiveResume(user.id, provider);
+    const result = await interpretActiveResume(user.id, provider);
     return NextResponse.redirect(
-      createAppUrl("/perfil?sucesso=interpretacao"),
+      createAppUrl(
+        `/perfil?sucesso=interpretacao&skills=${result.skills}&experiencias=${result.experiences}`,
+      ),
       303,
     );
   } catch {

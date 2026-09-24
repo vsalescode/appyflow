@@ -2,71 +2,110 @@ import { describe, expect, it, vi } from "vitest";
 
 import { SearchProviderError } from "@/application/providers/search-provider";
 
-import { SerpApiSearchProvider } from "./serpapi-search-provider";
+import {
+  SerpApiSearchProvider,
+  parseRelativePublishedAt,
+} from "./serpapi-search-provider";
 
 describe("SerpApiSearchProvider", () => {
-  it("envia a busca autenticada e traduz resultados orgânicos", async () => {
+  it("converte datas relativas em português e inglês", () => {
+    const now = new Date("2026-09-24T12:00:00.000Z");
+    expect(parseRelativePublishedAt("há 2 dias", now)?.toISOString()).toBe(
+      "2026-09-22T12:00:00.000Z",
+    );
+    expect(parseRelativePublishedAt("3 weeks ago", now)?.toISOString()).toBe(
+      "2026-09-03T12:00:00.000Z",
+    );
+    expect(parseRelativePublishedAt("hoje", now)?.toISOString()).toBe(
+      now.toISOString(),
+    );
+  });
+
+  it("busca vagas estruturadas e usa o link direto de candidatura", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           search_metadata: { id: "search-1", status: "Success" },
-          organic_results: [
+          jobs_results: [
             {
               title: "Backend Engineer",
-              link: "https://jobs.example.com/123",
-              snippet: "Remote role",
-              displayed_link: "jobs.example.com",
-              date: "1 day ago",
+              company_name: "Example",
+              location: "Remote - Brazil",
+              via: "LinkedIn",
+              description: "Remote role with TypeScript and PostgreSQL.",
+              detected_extensions: { posted_at: "1 day ago" },
+              apply_options: [
+                {
+                  title: "Example careers",
+                  link: "https://example.com/jobs/123",
+                },
+                {
+                  title: "LinkedIn",
+                  link: "https://www.linkedin.com/jobs/view/backend-engineer-at-example-123?utm_source=google_jobs_apply",
+                },
+              ],
+              job_id: "job-1",
             },
             {
               title: "Platform Engineer",
-              link: "https://jobs.example.com/456",
+              company_name: "Another Example",
+              apply_options: [],
+              job_id: "job-2",
+            },
+            {
+              title: "Old Backend Engineer",
+              company_name: "Old Example",
+              detected_extensions: { posted_at: "45 days ago" },
+              apply_options: [
+                {
+                  title: "LinkedIn",
+                  link: "https://www.linkedin.com/jobs/view/456",
+                },
+              ],
+              job_id: "job-3",
             },
           ],
         }),
         { status: 200 },
       ),
     );
-    const provider = new SerpApiSearchProvider("secret", fetchMock);
+    const provider = new SerpApiSearchProvider(
+      "secret",
+      fetchMock,
+      () => new Date("2026-09-24T12:00:00.000Z"),
+    );
 
     await expect(
       provider.search({
         query: " backend engineer ",
         country: "BR",
         language: "pt-br",
-        page: 2,
+        page: 1,
         limit: 2,
       }),
     ).resolves.toEqual({
       items: [
         {
           title: "Backend Engineer",
-          url: "https://jobs.example.com/123",
-          snippet: "Remote role",
-          displayedUrl: "jobs.example.com",
-          publishedAt: "1 day ago",
-        },
-        {
-          title: "Platform Engineer",
-          url: "https://jobs.example.com/456",
-          snippet: undefined,
-          displayedUrl: undefined,
-          publishedAt: undefined,
+          url: "https://www.linkedin.com/jobs/view/backend-engineer-at-example-123?utm_source=google_jobs_apply",
+          snippet: "Remote role with TypeScript and PostgreSQL.",
+          displayedUrl: "LinkedIn",
+          publishedAt: "2026-09-23T12:00:00.000Z",
+          company: "Example",
+          location: "Remote - Brazil",
         },
       ],
-      nextPage: 3,
       requestId: "search-1",
     });
 
     const url = fetchMock.mock.calls[0]?.[0] as URL;
     expect(url.origin + url.pathname).toBe("https://serpapi.com/search.json");
     expect(Object.fromEntries(url.searchParams)).toEqual({
-      engine: "google",
+      engine: "google_jobs",
       q: "backend engineer",
       api_key: "secret",
-      start: "2",
-      num: "2",
       gl: "br",
+      location: "Brazil",
       hl: "pt-br",
     });
   });
@@ -76,7 +115,7 @@ describe("SerpApiSearchProvider", () => {
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 429 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ organic_results: [] }), { status: 200 }),
+        new Response(JSON.stringify({ jobs_results: [] }), { status: 200 }),
       );
     const provider = new SerpApiSearchProvider("secret", fetchMock);
 

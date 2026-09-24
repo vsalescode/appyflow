@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { listMasterResumes } from "@/application/resume/master-resume-service";
 import { listResumeVersions } from "@/application/resume/resume-version-service";
 import { getUserBySessionToken } from "@/application/auth/auth-service";
@@ -18,19 +16,21 @@ export default async function ResumesPage({
   const query = await searchParams;
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <Link className="text-sm font-medium text-emerald-700" href="/dashboard">
-        ← Voltar ao dashboard
-      </Link>
-      <h1 className="mt-6 text-3xl font-semibold">Currículo mestre</h1>
-      <p className="mt-2 text-slate-600">
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+      <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
+        Documentos
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+        Currículo mestre
+      </h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
         Envie um PDF de até 5 MiB e 30 páginas. Cada envio é preservado no
         histórico.
       </p>
 
       <form
         action="/api/resumes"
-        className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
         encType="multipart/form-data"
         method="post"
       >
@@ -70,7 +70,7 @@ export default async function ResumesPage({
           <ol className="mt-4 space-y-5">
             {resumes.map((resume) => (
               <li
-                className="rounded-2xl border border-slate-200 bg-white p-6"
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 key={resume.id}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -123,7 +123,7 @@ export default async function ResumesPage({
           <ol className="mt-4 space-y-5">
             {versions.map((version) => (
               <li
-                className="rounded-2xl border border-slate-200 bg-white p-6"
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 key={version.id}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">

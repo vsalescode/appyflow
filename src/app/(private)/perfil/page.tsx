@@ -48,7 +48,12 @@ export default async function ProfilePage({
         </p>
       </form>
 
-      {query.sucesso ? (
+      {query.sucesso === "interpretacao" ? (
+        <p className="mt-5 text-sm text-emerald-700">
+          Perfil preenchido com os dados do currículo. Revise os campos e
+          confirme ou rejeite os fatos profissionais extraídos.
+        </p>
+      ) : query.sucesso ? (
         <p className="mt-5 text-sm text-emerald-700">Alterações salvas.</p>
       ) : null}
       {query.erro ? (

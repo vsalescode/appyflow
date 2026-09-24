@@ -7,6 +7,7 @@ import { getPrismaClient } from "@/infrastructure/database/prisma";
 
 import {
   executeDueSearches,
+  executeManualSearch,
   listSearchRuns,
   saveSearchSchedule,
 } from "./search-schedule-service";
@@ -94,5 +95,39 @@ describe("agendamento de buscas", () => {
       }),
     ).resolves.toEqual({ due: 0, claimed: 0 });
     expect(runWorker).toHaveBeenCalledOnce();
+  });
+
+  it("executa uma busca manual sem ativar o agendamento", async () => {
+    const userId = randomUUID();
+    await prisma.user.create({
+      data: {
+        id: userId,
+        email: `${randomUUID()}@example.com`,
+        passwordHash: "test",
+        candidateProfile: { create: { id: randomUUID() } },
+      },
+    });
+    const runWorker = vi.fn(async () => ({
+      queries: { total: 2, succeeded: 2, failed: 0 },
+      results: { found: 10, stored: 8, rejected: 2, blocked: 0 },
+      matching: { profiles: 1, matched: 8, skipped: 0 },
+      failures: [],
+    }));
+
+    await expect(
+      executeManualSearch(userId, provider, {
+        runWorker,
+        clock: () => new Date("2026-09-24T12:00:00.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "COMPLETED",
+      queriesTotal: 2,
+      resultsStored: 8,
+    });
+    expect(runWorker).toHaveBeenCalledWith(provider, {
+      userId,
+      maxQueries: 10,
+      resultsPerQuery: 10,
+    });
   });
 });

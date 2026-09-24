@@ -69,6 +69,43 @@ export function listSearchRuns(userId: string, take = 20) {
   });
 }
 
+export async function executeManualSearch(
+  userId: string,
+  provider: SearchProvider,
+  dependencies: SchedulerDependencies = defaultDependencies,
+) {
+  const prisma = getPrismaClient();
+  const profile = await prisma.candidateProfile.findUnique({
+    where: { userId },
+    include: { searchSchedule: true },
+  });
+  if (!profile) throw new Error("Perfil profissional não encontrado.");
+
+  const running = await prisma.searchRun.findFirst({
+    where: { profileId: profile.id, status: "RUNNING" },
+  });
+  if (running) throw new Error("Já existe uma busca em execução.");
+
+  const run = await prisma.searchRun.create({
+    data: {
+      id: randomUUID(),
+      profileId: profile.id,
+      status: "RUNNING",
+      startedAt: dependencies.clock(),
+    },
+  });
+  return executeSearchRun(
+    run.id,
+    provider,
+    {
+      userId,
+      maxQueries: profile.searchSchedule?.maxQueries ?? 10,
+      resultsPerQuery: profile.searchSchedule?.resultsPerQuery ?? 10,
+    },
+    dependencies,
+  );
+}
+
 export async function executeDueSearches(
   provider: SearchProvider,
   now: Date = new Date(),
@@ -110,44 +147,59 @@ export async function executeDueSearches(
     if (!run) continue;
     claimed += 1;
 
-    try {
-      const summary = await dependencies.runWorker(provider, {
+    await executeSearchRun(
+      run.id,
+      provider,
+      {
         userId: schedule.profile.userId,
         maxQueries: schedule.maxQueries,
         resultsPerQuery: schedule.resultsPerQuery,
-      });
-      await prisma.searchRun.update({
-        where: { id: run.id },
-        data: {
-          status: summary.failures.length ? "PARTIAL_FAILURE" : "COMPLETED",
-          finishedAt: dependencies.clock(),
-          queriesTotal: summary.queries.total,
-          queriesSucceeded: summary.queries.succeeded,
-          queriesFailed: summary.queries.failed,
-          resultsFound: summary.results.found,
-          resultsStored: summary.results.stored,
-          resultsRejected: summary.results.rejected,
-          resultsBlocked: summary.results.blocked,
-          jobsMatched: summary.matching.matched,
-          jobsSkipped: summary.matching.skipped,
-          failures: summary.failures.length
-            ? (JSON.parse(
-                JSON.stringify(summary.failures),
-              ) as Prisma.InputJsonValue)
-            : Prisma.DbNull,
-        },
-      });
-    } catch {
-      await prisma.searchRun.update({
-        where: { id: run.id },
-        data: {
-          status: "FAILED",
-          finishedAt: dependencies.clock(),
-          failures: [{ reason: "unexpected_error" }],
-        },
-      });
-    }
+      },
+      dependencies,
+    );
   }
 
   return { due: due.length, claimed };
+}
+
+async function executeSearchRun(
+  runId: string,
+  provider: SearchProvider,
+  options: SearchWorkerOptions,
+  dependencies: SchedulerDependencies,
+) {
+  const prisma = getPrismaClient();
+  try {
+    const summary = await dependencies.runWorker(provider, options);
+    return prisma.searchRun.update({
+      where: { id: runId },
+      data: {
+        status: summary.failures.length ? "PARTIAL_FAILURE" : "COMPLETED",
+        finishedAt: dependencies.clock(),
+        queriesTotal: summary.queries.total,
+        queriesSucceeded: summary.queries.succeeded,
+        queriesFailed: summary.queries.failed,
+        resultsFound: summary.results.found,
+        resultsStored: summary.results.stored,
+        resultsRejected: summary.results.rejected,
+        resultsBlocked: summary.results.blocked,
+        jobsMatched: summary.matching.matched,
+        jobsSkipped: summary.matching.skipped,
+        failures: summary.failures.length
+          ? (JSON.parse(
+              JSON.stringify(summary.failures),
+            ) as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+      },
+    });
+  } catch {
+    return prisma.searchRun.update({
+      where: { id: runId },
+      data: {
+        status: "FAILED",
+        finishedAt: dependencies.clock(),
+        failures: [{ reason: "unexpected_error" }],
+      },
+    });
+  }
 }

@@ -27,7 +27,7 @@ cadastro público, equipes, cobrança ou envio automático de candidaturas.
 | Dashboard de vagas e matching | disponível |
 | Pipeline de candidaturas | disponível |
 | Currículo personalizado e PDF | disponível pela API e histórico |
-| Execução manual do pipeline de busca | disponível pelo worker |
+| Execução manual do pipeline de busca | disponível pela interface e pelo worker |
 | Busca diária automática | disponível quando o scheduler está ativo |
 | Priorização e bloqueio de fontes | disponível em `/fontes` |
 
@@ -71,9 +71,10 @@ precisam informar a organização, e a data final não pode ser anterior à inic
 
 ### 4. Interpretar o currículo com IA
 
-Quando um provider de IA está configurado, o currículo ativo pode ser usado para
-sugerir skills e experiências. Cada sugestão precisa apontar uma evidência
-literal existente no texto do PDF.
+Quando um provider de IA está configurado, o currículo ativo pode preencher
+título, resumo, senioridade e localização, além de sugerir skills e experiências.
+Cada fato sugerido precisa apontar uma evidência literal existente no texto do
+PDF.
 
 Sugestões da IA não são tratadas como verdade automaticamente. Elas ficam
 pendentes até a pessoa confirmar ou rejeitar cada item. O sistema registra a
@@ -110,8 +111,10 @@ Existem duas opções:
 As consultas são normalizadas e repetidas não são cadastradas novamente. Termos
 explicitamente excluídos pela pessoa também são removidos das sugestões da IA.
 
-A tela apresenta as queries registradas e sua origem. Gerar uma query ainda não
-significa executar uma busca completa ou disponibilizar vagas no dashboard.
+A tela apresenta as queries registradas e sua origem. O botão `Buscar vagas
+agora`, disponível em `/queries` e no dashboard, executa um ciclo único sem
+ativar o agendamento automático. O resultado é registrado no histórico de
+execuções.
 
 ## Descoberta e tratamento de vagas
 

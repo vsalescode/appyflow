@@ -56,6 +56,8 @@ enum Seniority {
 enum ProfessionalFactType {
   SKILL
   EXPERIENCE
+  PROJECT
+  LANGUAGE
 }
 
 enum FactReviewStatus {

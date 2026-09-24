@@ -79,6 +79,19 @@ export async function analyzeJobMatchWithAI(
         organization: fact.organization,
         description: fact.description,
       })),
+    confirmedProjects: job.profile.professionalFacts
+      .filter((fact) => fact.type === "PROJECT")
+      .map((fact) => ({
+        title: fact.title,
+        reference: fact.organization,
+        description: fact.description,
+      })),
+    confirmedLanguages: job.profile.professionalFacts
+      .filter((fact) => fact.type === "LANGUAGE")
+      .map((fact) => ({
+        language: fact.title,
+        proficiency: fact.description,
+      })),
     preferences: job.profile.preference,
   };
   const vacancyEvidence = {

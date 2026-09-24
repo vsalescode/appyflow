@@ -54,15 +54,15 @@ os arquivos entre reinicializações.
 ## Perfil profissional
 
 Em `/perfil`, o usuário registra título profissional, senioridade, localização,
-resumo, skills e experiências confirmadas. Nesta etapa os dados são informados
+resumo, skills, idiomas, projetos e experiências confirmadas. Nesta etapa os dados são informados
 manualmente ou extraídos do currículo com OpenAI ou Groq. Fatos
 extraídos ficam pendentes e exigem confirmação; cada um preserva uma citação
 literal do currículo como evidência.
 
-A interpretação executa duas análises focadas: uma para perfil e experiências e
-outra para auditar competências em todas as seções do PDF. Tecnologias citadas em
-projetos e descrições de experiências também são consideradas, com uma skill por
-item e deduplicação antes da revisão.
+A interpretação estruturada separa perfil, experiências profissionais, projetos,
+idiomas e uma auditoria de competências em todas as seções do PDF. Tecnologias
+citadas em projetos e descrições de experiências também são consideradas, com
+uma skill por item e deduplicação antes da revisão.
 
 Para habilitar a interpretação, configure `AI_PROVIDER=openai` ou
 `AI_PROVIDER=groq`, além de `AI_API_KEY` e `AI_MODEL`. As chamadas usam saída

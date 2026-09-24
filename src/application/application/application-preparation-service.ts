@@ -21,6 +21,8 @@ const draftResumeContentSchema = z.object({
     evidenceFactIds: z.array(z.uuid()).min(1).max(20),
   }),
   experiences: z.array(selectionSchema).max(20),
+  projects: z.array(selectionSchema).max(20),
+  languages: z.array(selectionSchema).max(20),
   skills: z.array(selectionSchema).max(50),
 });
 export type DraftResumeContent = z.infer<typeof draftResumeContentSchema>;
@@ -77,7 +79,7 @@ export async function prepareApplication(
       {
         role: "system",
         content:
-          "Prepare conteúdo de currículo usando exclusivamente os fatos confirmados fornecidos. Toda experiência e skill deve referenciar seu factId original. O resumo deve listar os factIds que sustentam o texto. Não invente tecnologias, empresas, datas, métricas, resultados ou tempo de experiência. Preserve nomes próprios, números e fatos. Não gere LaTeX.",
+          "Prepare conteúdo de currículo usando exclusivamente os fatos confirmados fornecidos. Toda experiência, projeto, idioma e skill deve referenciar seu factId original e permanecer em sua categoria correta. O resumo deve listar os factIds que sustentam o texto. Não transforme projeto em experiência profissional nem idioma humano em skill técnica. Não invente tecnologias, empresas, datas, métricas, resultados ou tempo de experiência. Preserve nomes próprios, números e fatos. Não gere LaTeX.",
       },
       {
         role: "user",
@@ -167,7 +169,10 @@ export async function prepareApplication(
 
 export function validateFactReferences(
   content: DraftResumeContent,
-  facts: readonly { id: string; type: "SKILL" | "EXPERIENCE" }[],
+  facts: readonly {
+    id: string;
+    type: "SKILL" | "EXPERIENCE" | "PROJECT" | "LANGUAGE";
+  }[],
 ) {
   const types = new Map(facts.map((fact) => [fact.id, fact.type]));
   for (const id of content.summary.evidenceFactIds)
@@ -176,11 +181,19 @@ export function validateFactReferences(
   for (const selection of content.experiences)
     if (types.get(selection.factId) !== "EXPERIENCE")
       throw new Error("Experiência contém referência inválida.");
+  for (const selection of content.projects)
+    if (types.get(selection.factId) !== "PROJECT")
+      throw new Error("Projeto contém referência inválida.");
+  for (const selection of content.languages)
+    if (types.get(selection.factId) !== "LANGUAGE")
+      throw new Error("Idioma contém referência inválida.");
   for (const selection of content.skills)
     if (types.get(selection.factId) !== "SKILL")
       throw new Error("Skill contém referência inválida.");
   const ids = [
     ...content.experiences.map((item) => item.factId),
+    ...content.projects.map((item) => item.factId),
+    ...content.languages.map((item) => item.factId),
     ...content.skills.map((item) => item.factId),
   ];
   if (new Set(ids).size !== ids.length)

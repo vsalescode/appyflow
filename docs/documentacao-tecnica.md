@@ -170,8 +170,8 @@ um currículo permanece ativo.
 
 ## Perfil, fatos e interpretação por IA
 
-`CandidateProfile` armazena título, resumo, senioridade e localização. Skills e
-experiências são representadas por `ProfessionalFact`.
+`CandidateProfile` armazena título, resumo, senioridade e localização. Skills,
+idiomas, projetos e experiências são representados por `ProfessionalFact`.
 
 Fatos cadastrados manualmente começam confirmados. A interpretação por IA usa o
 contrato `AIProvider` e um dos adapters disponíveis:
@@ -183,9 +183,16 @@ Ambos os adapters:
 
 - usa saída JSON com schema estrito;
 - desativa o armazenamento da resposta no provider;
-- executa passes separados para perfil/experiências e inventário de skills;
+- usa chamadas estruturadas focadas para perfil/experiências/projetos/idiomas e
+  para o inventário de skills;
 - audita skills em todas as seções, com itens atômicos e deduplicados;
-- limita a quantidade de saída de cada passe;
+- normaliza aliases de skills, descarta rótulos genéricos e identifica projetos
+  pelo tipo e título, sem usar URL ou plataforma como parte da identidade;
+- complementa idiomas explícitos por extração determinística;
+- compara a interpretação com todos os fatos do perfil, independentemente do
+  currículo de origem, e adiciona somente resultados inéditos;
+- limita a saída de cada chamada e repete limites temporários informados pela
+  Groq;
 - exige que cada fato contenha uma citação literal do currículo.
 
 Fatos derivados por IA começam como `PENDING` e precisam ser confirmados ou

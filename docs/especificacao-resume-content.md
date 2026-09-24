@@ -72,9 +72,10 @@ O nome completo é obrigatório porque ocupa o elemento principal do cabeçalho.
 
 ## Lacunas do modelo atual
 
-O banco atual registra apenas fatos dos tipos `SKILL` e `EXPERIENCE`. Para preencher
-todo o `ResumeContent` com rastreabilidade, etapas posteriores precisarão suportar
-fatos de projeto, formação, curso e idioma, além de dados de contato estruturados.
+O banco registra fatos dos tipos `SKILL`, `EXPERIENCE`, `PROJECT` e `LANGUAGE`.
+Para preencher todo o `ResumeContent` com rastreabilidade, etapas posteriores
+precisarão suportar fatos de formação e curso, além de dados de contato
+estruturados.
 
 O conteúdo provisório criado durante a preparação da candidatura não deve ser
 tratado como `ResumeContent` definitivo até ser convertido e validado por este

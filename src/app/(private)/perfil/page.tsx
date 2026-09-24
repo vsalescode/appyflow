@@ -23,6 +23,10 @@ export default async function ProfilePage({
   const user = await getUserBySessionToken(await readSessionCookie());
   const profile = user ? await getCandidateProfile(user.id) : null;
   const query = await searchParams;
+  const pendingFacts =
+    profile?.professionalFacts.filter(
+      (fact) => fact.reviewStatus === "PENDING",
+    ) ?? [];
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
@@ -51,15 +55,28 @@ export default async function ProfilePage({
       {query.sucesso === "interpretacao" ? (
         <p className="mt-5 text-sm text-emerald-700">
           Análise concluída: {query.skills ?? "0"} skills e{" "}
-          {query.experiencias ?? "0"} experiências novas encontradas. Revise os
-          campos e confirme ou rejeite os fatos profissionais extraídos.
+          {query.experiencias ?? "0"} experiências e {query.projetos ?? "0"}
+          {" projetos e "}
+          {query.idiomas ?? "0"} idiomas novos encontrados. Revise os campos e
+          confirme ou rejeite os fatos profissionais extraídos.
+          {query.descartados && query.descartados !== "0"
+            ? ` ${query.descartados} item(ns) sem evidência verificável foram descartados.`
+            : ""}
+        </p>
+      ) : query.sucesso === "fatos-confirmados" ? (
+        <p className="mt-5 text-sm text-emerald-700">
+          {query.confirmados ?? "0"} fatos restantes foram confirmados.
         </p>
       ) : query.sucesso ? (
         <p className="mt-5 text-sm text-emerald-700">Alterações salvas.</p>
       ) : null}
       {query.erro ? (
         <p className="mt-5 text-sm text-red-700">
-          Revise os campos informados.
+          {query.erro === "limite-ia"
+            ? "A IA atingiu o limite temporário de uso. Aguarde um minuto e tente novamente."
+            : query.erro === "interpretacao"
+              ? "Não foi possível interpretar o currículo. Tente novamente ou verifique o provider de IA."
+              : "Revise os campos informados."}
         </p>
       ) : null}
 
@@ -151,6 +168,8 @@ export default async function ProfilePage({
             >
               <option value="SKILL">Skill</option>
               <option value="EXPERIENCE">Experiência</option>
+              <option value="PROJECT">Projeto</option>
+              <option value="LANGUAGE">Idioma</option>
             </select>
           </label>
           <label className="text-sm font-medium">
@@ -203,8 +222,28 @@ export default async function ProfilePage({
         </form>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">Fatos profissionais</h2>
+      <section className="mt-10" id="fatos-profissionais">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Fatos profissionais</h2>
+            {pendingFacts.length ? (
+              <p className="mt-1 text-sm text-slate-600">
+                Exclua ou rejeite os itens incorretos antes de confirmar o
+                restante.
+              </p>
+            ) : null}
+          </div>
+          {pendingFacts.length ? (
+            <form action="/api/profile/facts/confirm-all" method="post">
+              <button
+                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+                type="submit"
+              >
+                Aceitar todas as restantes ({pendingFacts.length})
+              </button>
+            </form>
+          ) : null}
+        </div>
         {!profile?.professionalFacts.length ? (
           <p className="mt-4 text-slate-600">Nenhum fato registrado.</p>
         ) : (
@@ -217,7 +256,13 @@ export default async function ProfilePage({
                 <div className="flex justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold text-emerald-700">
-                      {fact.type === "SKILL" ? "SKILL" : "EXPERIÊNCIA"}
+                      {fact.type === "SKILL"
+                        ? "SKILL"
+                        : fact.type === "PROJECT"
+                          ? "PROJETO"
+                          : fact.type === "LANGUAGE"
+                            ? "IDIOMA"
+                            : "EXPERIÊNCIA"}
                       {` · ${fact.reviewStatus === "PENDING" ? "PENDENTE" : fact.reviewStatus === "REJECTED" ? "REJEITADO" : "CONFIRMADO"}`}
                     </p>
                     <h3 className="font-semibold">{fact.title}</h3>

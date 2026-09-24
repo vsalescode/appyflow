@@ -36,7 +36,7 @@ const profileSchema = z.object({
 
 const factSchema = z
   .object({
-    type: z.enum(["SKILL", "EXPERIENCE"]),
+    type: z.enum(["SKILL", "EXPERIENCE", "PROJECT", "LANGUAGE"]),
     title: z.string().trim().min(1).max(160),
     organization: optionalText(160),
     description: optionalText(4_000),

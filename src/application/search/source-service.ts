@@ -1,5 +1,6 @@
 import { getPrismaClient } from "@/infrastructure/database/prisma";
 import { calculateSourceScore } from "@/domain/source/source-score";
+import { sourceKindPriority } from "@/domain/source/source-kind";
 import { parseSourceManagementStatus } from "@/domain/source/source-management";
 
 export async function listDiscoveredSources(
@@ -26,6 +27,8 @@ export async function listDiscoveredSources(
       (left, right) =>
         managementOrder(left.managementStatus) -
           managementOrder(right.managementStatus) ||
+        sourceKindPriority(left.kind, left.domain) -
+          sourceKindPriority(right.kind, right.domain) ||
         right.score.value - left.score.value ||
         left.domain.localeCompare(right.domain),
     );

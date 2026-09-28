@@ -211,6 +211,14 @@ não rejeição automática.
 
 ## Queries e provider de busca
 
+Cargos genéricos são expandidos para títulos pesquisáveis e combinações entre
+cargo e tecnologia passam por regras de coerência de stack. Somente tecnologias
+principais de `Preference.technologies` alimentam essas combinações; skills do
+currículo não são promovidas implicitamente a preferência. Ao regenerar, queries
+antigas da mesma origem ficam inativas. O worker processa primeiro as nunca
+executadas e depois as menos recentes, registrando tentativas, sucessos e total
+de resultados por query.
+
 O gerador determinístico combina cargo, modalidade, localização e tecnologias.
 Também existe geração opcional por IA com saída estruturada. Queries são
 normalizadas e possuem unicidade por perfil.
@@ -240,18 +248,44 @@ retornado por cada serviço é preservado em `requestId`, quando disponível.
 
 Entre as opções de candidatura, o adapter prioriza URLs do LinkedIn. O campo
 relativo `detected_extensions.posted_at` é convertido em data para expressões em
-português e inglês. Resultados reconhecidamente anteriores a 30 dias são
+português e inglês. Resultados reconhecidamente anteriores a 14 dias são
 descartados, e os demais são ordenados por publicação, com links do LinkedIn como
 desempate. O dashboard aplica a mesma janela, preservando a visibilidade de vagas
 antigas que já tenham candidatura acompanhada.
 
+Quando `posted_at` não existe, o adapter faz uma consulta limitada à URL direta
+e procura `JobPosting.datePosted` em JSON-LD. O fallback usa timeout de cinco
+segundos, limita documentos declarados a 2 MB, não segue redirecionamentos e
+recusa hosts locais ou faixas IP privadas. Falhas de enriquecimento mantêm a data
+desconhecida sem interromper a query inteira.
+
 ### Worker de busca
+
+Os filtros leem título e descrição normalizados. Além das incompatibilidades de
+cargo, modalidade, localização e stack, o parser reconhece senioridade explícita
+e requisitos de anos de experiência quando o título não informa o nível. Uma
+descrição curta, data ausente ou outro dado decisivo desconhecido produz
+`REVIEW`. O dashboard separa essas vagas das classificações `HOT`, `WARM` e
+`COLD`, evitando apresentar um score parcial como conclusão. Recência usa apenas
+`publishedAt`; `discoveredAt` não concede pontos.
+
+Se `Preference.technologies` estiver vazia, um catálogo normalizado de aliases
+extrai tecnologias explícitas do título e as compara com fatos `SKILL`
+confirmados. Essa alternativa não transforma todas as skills em preferências de
+busca: ela serve somente para rejeitar requisitos centrais comprovadamente
+ausentes e para evitar a mensagem incorreta de falta de dados.
 
 O comando `npm run worker:search` carrega todas as queries cadastradas e as
 processa sequencialmente. Cada resultado passa pela normalização, deduplicação e
 persistência já existentes; ao final de cada perfil, filtros rápidos e matching
 determinístico são recalculados. Falhas são isoladas por query e apresentadas em
 um resumo JSON sem conteúdo de vagas ou credenciais.
+
+A decisão dos filtros rápidos (`ELIGIBLE`, `REVIEW` ou `REJECTED`), as regras
+avaliadas e o instante da avaliação são persistidos em `Job`. Quando uma vaga é
+rejeitada, qualquer match anterior é removido. O dashboard exclui vagas
+rejeitadas e ainda não avaliadas, preservando somente aquelas que já possuem uma
+candidatura acompanhada.
 
 A interface autenticada também expõe uma execução única por
 `POST /api/search-runs/manual`. A rota usa os limites do agendamento quando eles
@@ -296,6 +330,11 @@ nem entram no matching. A priorização altera apenas a ordenação de apresenta
 sem aumentar artificialmente a compatibilidade da vaga.
 
 ## Modelo de dados atual
+
+O domínio de cada ocorrência é classificado como ATS, página de carreira,
+portal especializado, agregador ou desconhecido. A ordenação favorece uma fonte
+priorizada manualmente e, em seguida, LinkedIn, ATS e páginas oficiais antes de
+agregadores. Essa prioridade afeta apresentação, não o score de aderência.
 
 | Entidade | Responsabilidade |
 | --- | --- |

@@ -63,6 +63,31 @@ describe("query generator", () => {
     expect(queries.every((item) => item.origin === "DETERMINISTIC")).toBe(true);
   });
 
+  it("expande cargos genéricos e evita combinações incoerentes", async () => {
+    const user = await createContext();
+    const profile = await prisma.candidateProfile.findUniqueOrThrow({
+      where: { userId: user.id },
+    });
+    await prisma.preference.update({
+      where: { profileId: profile.id },
+      data: {
+        desiredRoles: ["Backend", "Front-End", "Estágio"],
+        technologies: ["Java", "React", "TypeScript"],
+      },
+    });
+
+    const queries = await generateDeterministicQueries(user.id);
+    const values = queries.map((item) => item.query);
+
+    expect(values).toContain("Desenvolvedor Backend Java remoto");
+    expect(values).toContain("Desenvolvedor Frontend React remoto");
+    expect(values).toContain(
+      "Estágio em Desenvolvimento de Software Java remoto",
+    );
+    expect(values).not.toContain("Desenvolvedor Backend React remoto");
+    expect(values).not.toContain("Desenvolvedor Frontend Java remoto");
+  });
+
   it("valida e deduplica queries geradas por IA", async () => {
     const user = await createContext();
     const generateStructured = vi.fn().mockResolvedValue({

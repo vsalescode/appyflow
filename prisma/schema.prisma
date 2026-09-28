@@ -104,6 +104,13 @@ enum MatchClassification {
   COLD
 }
 
+enum JobFilterDecision {
+  PENDING
+  ELIGIBLE
+  REVIEW
+  REJECTED
+}
+
 enum ApplicationStatus {
   FOUND
   INTERESTING
@@ -190,19 +197,25 @@ model SearchRun {
 }
 
 model SearchQuery {
-  id          String            @id @default(uuid()) @db.Uuid
-  profileId   String            @map("profile_id") @db.Uuid
-  query       String            @db.VarChar(300)
-  normalized  String            @db.VarChar(300)
-  origin      SearchQueryOrigin
-  aiModel     String?           @map("ai_model") @db.VarChar(160)
-  aiRequestId String?           @map("ai_request_id") @db.VarChar(255)
-  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  profile     CandidateProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  occurrences JobOccurrence[]
+  id             String            @id @default(uuid()) @db.Uuid
+  profileId      String            @map("profile_id") @db.Uuid
+  query          String            @db.VarChar(300)
+  normalized     String            @db.VarChar(300)
+  origin         SearchQueryOrigin
+  aiModel        String?           @map("ai_model") @db.VarChar(160)
+  aiRequestId    String?           @map("ai_request_id") @db.VarChar(255)
+  lastSearchedAt DateTime?         @map("last_searched_at") @db.Timestamptz(3)
+  searchCount    Int               @default(0) @map("search_count")
+  successCount   Int               @default(0) @map("success_count")
+  totalResults   Int               @default(0) @map("total_results")
+  isActive       Boolean           @default(true) @map("is_active")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  profile        CandidateProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  occurrences    JobOccurrence[]
 
   @@unique([profileId, normalized])
   @@index([profileId, createdAt])
+  @@index([profileId, isActive, lastSearchedAt])
   @@map("search_queries")
 }
 
@@ -239,23 +252,27 @@ model SourceMetricSnapshot {
 }
 
 model Job {
-  id              String           @id @default(uuid()) @db.Uuid
-  profileId       String           @map("profile_id") @db.Uuid
-  fingerprint     String           @db.Char(64)
-  title           String           @db.VarChar(300)
-  company         String?          @db.VarChar(200)
-  description     String?          @db.Text
-  location        String?          @db.VarChar(200)
-  workArrangement WorkArrangement  @default(UNKNOWN) @map("work_arrangement")
-  publishedAt     DateTime?        @map("published_at") @db.Timestamptz(3)
-  discoveredAt    DateTime         @default(now()) @map("discovered_at") @db.Timestamptz(3)
-  profile         CandidateProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id              String            @id @default(uuid()) @db.Uuid
+  profileId       String            @map("profile_id") @db.Uuid
+  fingerprint     String            @db.Char(64)
+  title           String            @db.VarChar(300)
+  company         String?           @db.VarChar(200)
+  description     String?           @db.Text
+  location        String?           @db.VarChar(200)
+  workArrangement WorkArrangement   @default(UNKNOWN) @map("work_arrangement")
+  publishedAt     DateTime?         @map("published_at") @db.Timestamptz(3)
+  discoveredAt    DateTime          @default(now()) @map("discovered_at") @db.Timestamptz(3)
+  filterDecision  JobFilterDecision @default(PENDING) @map("filter_decision")
+  filterRules     Json?             @map("filter_rules")
+  filteredAt      DateTime?         @map("filtered_at") @db.Timestamptz(3)
+  profile         CandidateProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   occurrences     JobOccurrence[]
   match           JobMatch?
   application     Application?
 
   @@unique([profileId, fingerprint])
   @@index([profileId, discoveredAt])
+  @@index([profileId, filterDecision])
   @@map("jobs")
 }
 

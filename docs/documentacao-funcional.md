@@ -120,6 +120,12 @@ campo vazio significa “não informado”, e não uma proibição implícita.
 
 ### 6. Gerar queries de busca
 
+Cargos genéricos são convertidos em títulos pesquisáveis. As tecnologias
+principais configuradas em Preferências só são combinadas com cargos coerentes;
+por exemplo, uma tecnologia exclusivamente frontend não é usada em uma consulta
+de backend. Uma nova geração substitui o conjunto ativo da mesma origem, e cada
+execução prioriza consultas nunca usadas ou usadas há mais tempo.
+
 Em `/queries`, o sistema cria consultas a partir do perfil e das preferências.
 Existem duas opções:
 
@@ -144,8 +150,13 @@ descrição e link direto de candidatura antes de entrar no dashboard.
 
 Links diretos do LinkedIn são priorizados quando oferecidos pelo resultado
 estruturado. O sistema converte datas relativas conhecidas, descarta vagas com
-mais de 30 dias e apresenta primeiro as publicações mais recentes. Vagas cuja
+mais de 14 dias e apresenta primeiro as publicações mais recentes. Vagas cuja
 data não foi informada continuam identificadas pelo instante de descoberta.
+
+Quando o resultado estruturado omite a data, o sistema tenta ler o campo
+`datePosted` dos metadados `JobPosting` da página pública da vaga. Essa consulta
+não segue redirecionamentos e não acessa endereços locais. Se a página não
+oferecer uma data verificável, a vaga permanece marcada para revisão.
 
 Quando um resultado é processado, o sistema pode normalizar:
 
@@ -174,6 +185,28 @@ apenas por parâmetros de rastreamento. O AppyFlow separa dois conceitos:
 Assim, uma vaga pode ser exibida uma única vez sem perder seus links de origem.
 A deduplicação é conservadora: quando faltam sinais suficientes, os resultados
 permanecem separados para evitar esconder oportunidades diferentes.
+
+### Qualidade da classificação
+
+Antes de classificar uma oportunidade, os filtros verificam empresa e termos
+bloqueados, idade real da publicação, modalidade, cargo, senioridade,
+localização e tecnologias principais. A descrição completa também é analisada:
+exigências explícitas de senioridade ou de anos de experiência podem eliminar
+uma vaga incompatível. Data de publicação desconhecida e descrição insuficiente
+não recebem aparência de certeza; essas vagas ficam identificadas como
+`Revisar` no dashboard.
+
+As tecnologias principais são um critério intencional informado em
+Preferências. O sistema não transforma automaticamente toda skill extraída do
+currículo em stack desejada, pois isso produziria buscas e scores irrelevantes.
+LinkedIn, páginas oficiais e ATS aparecem antes de agregadores quando os demais
+critérios são equivalentes. Uma vaga sem data real de publicação não recebe
+pontos de recência.
+
+Quando nenhuma tecnologia principal foi configurada, o sistema ainda compara
+tecnologias explícitas no título da vaga com as skills confirmadas do currículo.
+Uma vaga que exige no próprio título uma tecnologia ausente, como `.NET` ou
+`Blip`, é rejeitada em vez de receber uma cobertura indeterminada.
 
 ## Regras funcionais
 
@@ -227,3 +260,8 @@ currículo + perfil + preferências
 Matching é apresentado como aderência aos critérios conhecidos, nunca como
 probabilidade de contratação. Conteúdo de currículo gerado permanece apoiado em
 fatos confirmados pela pessoa usuária.
+
+Vagas rejeitadas pelos filtros objetivos não aparecem no dashboard. A decisão e
+os critérios avaliados ficam registrados para auditoria. Se uma vaga rejeitada
+já possuir candidatura acompanhada, ela continua visível para preservar o
+histórico.

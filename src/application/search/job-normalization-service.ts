@@ -7,6 +7,7 @@ import {
   normalizeSearchResult,
   type NormalizedJob,
 } from "@/domain/job/normalize-job";
+import { classifySourceDomain } from "@/domain/source/source-kind";
 import { getPrismaClient } from "@/infrastructure/database/prisma";
 
 export interface NormalizationSummary {
@@ -45,6 +46,7 @@ export async function normalizeAndStoreSearchResults(
     });
     const touchedSourceIds = new Set<string>();
     for (const job of valid) {
+      const kind = classifySourceDomain(job.sourceDomain);
       const source = await transaction.source.upsert({
         where: {
           provider_domain: {
@@ -56,10 +58,14 @@ export async function normalizeAndStoreSearchResults(
           id: randomUUID(),
           provider: providerName,
           domain: job.sourceDomain,
+          kind,
           firstSeenAt: observedAt,
           lastSeenAt: observedAt,
         },
-        update: { lastSeenAt: observedAt },
+        update: {
+          lastSeenAt: observedAt,
+          ...(kind === "UNKNOWN" ? {} : { kind }),
+        },
       });
       if (source.managementStatus === "BLOCKED") {
         blocked += 1;

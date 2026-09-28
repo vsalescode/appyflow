@@ -10,7 +10,8 @@ const now = new Date("2026-09-16T12:00:00.000Z");
 const job: QuickFilterJob = {
   title: "Senior Backend Engineer",
   company: "Acme",
-  description: "Node.js and PostgreSQL",
+  description:
+    "Build and maintain backend services with Node.js and PostgreSQL, write automated tests, review code, document APIs, and collaborate with the product team.",
   location: "São Paulo, Brasil",
   workArrangement: "REMOTE",
   publishedAt: new Date("2026-09-14T12:00:00.000Z"),
@@ -21,6 +22,7 @@ const preferences: QuickFilterPreferences = {
   seniorities: ["SENIOR"],
   workModes: ["REMOTE"],
   locations: ["São Paulo"],
+  technologies: ["Node.js"],
   excludedCompanies: ["Blocked Inc"],
   excludedKeywords: ["voluntário"],
 };
@@ -39,6 +41,7 @@ describe("quick job filters", () => {
     ["idade", { publishedAt: new Date("2026-06-01T12:00:00.000Z") }, "AGE"],
     ["modalidade", { workArrangement: "ONSITE" as const }, "WORK_MODE"],
     ["senioridade", { title: "Junior Backend Engineer" }, "SENIORITY"],
+    ["stack", { description: "C# and SQL Server" }, "TECHNOLOGY"],
   ])("rejeita por %s incompatível", (_name, override, code) => {
     const result = evaluateQuickFilters({ ...job, ...override }, preferences, {
       now,
@@ -72,7 +75,7 @@ describe("quick job filters", () => {
     );
   });
 
-  it("usa discoveredAt quando a fonte não informa publicação", () => {
+  it("encaminha data de publicação desconhecida para revisão", () => {
     const result = evaluateQuickFilters(
       {
         ...job,
@@ -83,8 +86,40 @@ describe("quick job filters", () => {
       { now, maxAgeDays: 30 },
     );
 
+    expect(result.decision).toBe("REVIEW");
     expect(result.rules).toContainEqual(
-      expect.objectContaining({ code: "AGE", status: "REJECT" }),
+      expect.objectContaining({ code: "AGE", status: "REVIEW" }),
+    );
+  });
+
+  it("encaminha descriÃ§Ã£o insuficiente para revisÃ£o", () => {
+    const result = evaluateQuickFilters(
+      { ...job, description: "Node.js" },
+      preferences,
+      { now },
+    );
+
+    expect(result.decision).toBe("REVIEW");
+    expect(result.rules).toContainEqual(
+      expect.objectContaining({ code: "DESCRIPTION", status: "REVIEW" }),
+    );
+  });
+
+  it("usa a experiÃªncia exigida na descriÃ§Ã£o quando o tÃ­tulo omite a senioridade", () => {
+    const result = evaluateQuickFilters(
+      {
+        ...job,
+        title: "Backend Engineer",
+        description:
+          "We require at least 6 years of experience building backend systems with Node.js and PostgreSQL, automated tests, API design, observability, and production operations.",
+      },
+      { ...preferences, seniorities: ["JUNIOR"] },
+      { now },
+    );
+
+    expect(result.decision).toBe("REJECTED");
+    expect(result.rules).toContainEqual(
+      expect.objectContaining({ code: "SENIORITY", status: "REJECT" }),
     );
   });
 
@@ -96,5 +131,27 @@ describe("quick job filters", () => {
     );
 
     expect(result.decision).toBe("REJECTED");
+  });
+
+  it("rejeita tecnologia central do tÃ­tulo ausente nas skills confirmadas", () => {
+    const result = evaluateQuickFilters(
+      {
+        ...job,
+        title: "Desenvolvedor .NET + Chatbot Blip",
+        description:
+          "ExperiÃªncia comprovada com Blip, JavaScript, integraÃ§Ãµes HTTP, WhatsApp Business API, NLP, C#, ASP.NET Core, Azure e SQL Server.",
+      },
+      { ...preferences, technologies: [] },
+      { now, candidateSkills: ["Java", "JavaScript", "Spring Boot"] },
+    );
+
+    expect(result.decision).toBe("REJECTED");
+    expect(result.rules).toContainEqual(
+      expect.objectContaining({
+        code: "TECHNOLOGY",
+        status: "REJECT",
+        reason: expect.stringContaining(".NET, Blip"),
+      }),
+    );
   });
 });

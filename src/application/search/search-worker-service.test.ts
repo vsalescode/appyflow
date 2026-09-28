@@ -21,6 +21,7 @@ describe("search worker", () => {
       .mockResolvedValueOnce({ stored: 1, rejected: 0, blocked: 0 })
       .mockResolvedValueOnce({ stored: 0, rejected: 0, blocked: 1 });
     const match = vi.fn(async () => ({ matched: 2, skipped: 1 }));
+    const recordQueryRun = vi.fn(async () => undefined);
 
     const summary = await runSearchWorker(provider, {
       listQueries: async () => [
@@ -29,6 +30,7 @@ describe("search worker", () => {
       ],
       normalize,
       match,
+      recordQueryRun,
     });
 
     expect(summary).toEqual({
@@ -50,6 +52,14 @@ describe("search worker", () => {
       expect.any(Array),
     );
     expect(match).toHaveBeenCalledOnce();
+    expect(recordQueryRun).toHaveBeenNthCalledWith(1, "query-1", {
+      succeeded: true,
+      resultsFound: 1,
+    });
+    expect(recordQueryRun).toHaveBeenNthCalledWith(2, "query-2", {
+      succeeded: true,
+      resultsFound: 1,
+    });
   });
 
   it("isola falhas por query e continua o restante do ciclo", async () => {
@@ -66,6 +76,7 @@ describe("search worker", () => {
       rejected: 0,
       blocked: 0,
     }));
+    const recordQueryRun = vi.fn(async () => undefined);
 
     const summary = await runSearchWorker(provider, {
       listQueries: async () => [
@@ -74,6 +85,7 @@ describe("search worker", () => {
       ],
       normalize,
       match: async () => ({ matched: 0, skipped: 0 }),
+      recordQueryRun,
     });
 
     expect(summary.queries).toEqual({ total: 2, succeeded: 1, failed: 1 });
@@ -83,6 +95,14 @@ describe("search worker", () => {
       reason: "rate_limit",
     });
     expect(normalize).toHaveBeenCalledOnce();
+    expect(recordQueryRun).toHaveBeenNthCalledWith(1, "query-1", {
+      succeeded: false,
+      resultsFound: 0,
+    });
+    expect(recordQueryRun).toHaveBeenNthCalledWith(2, "query-2", {
+      succeeded: true,
+      resultsFound: 0,
+    });
   });
 
   it("não chama provider nem matching quando não existem queries", async () => {

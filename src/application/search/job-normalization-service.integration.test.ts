@@ -64,7 +64,7 @@ describe("job normalization service", () => {
     await expect(prisma.source.findFirst()).resolves.toMatchObject({
       provider: "serper",
       domain: "jobs.example.com",
-      kind: "UNKNOWN",
+      kind: "CAREER_PAGE",
       occurrenceCount: 2,
       uniqueJobCount: 2,
       firstSeenAt: discoveredAt,

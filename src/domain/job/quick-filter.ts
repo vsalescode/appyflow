@@ -1,3 +1,6 @@
+import { MAX_JOB_AGE_DAYS } from "./freshness";
+import { findKnownTechnologies, hasTechnology } from "./technology";
+
 export type QuickFilterDecision = "ELIGIBLE" | "REVIEW" | "REJECTED";
 export type QuickFilterRuleStatus = "PASS" | "REVIEW" | "REJECT";
 
@@ -16,6 +19,7 @@ export interface QuickFilterPreferences {
   seniorities: readonly string[];
   workModes: readonly ("REMOTE" | "HYBRID" | "ONSITE")[];
   locations: readonly string[];
+  technologies: readonly string[];
   excludedCompanies: readonly string[];
   excludedKeywords: readonly string[];
 }
@@ -24,10 +28,12 @@ export interface QuickFilterRule {
   code:
     | "COMPANY"
     | "KEYWORD"
+    | "DESCRIPTION"
     | "AGE"
     | "WORK_MODE"
     | "ROLE"
     | "SENIORITY"
+    | "TECHNOLOGY"
     | "LOCATION";
   status: QuickFilterRuleStatus;
   reason: string;
@@ -41,6 +47,7 @@ export interface QuickFilterResult {
 export interface QuickFilterOptions {
   now?: Date;
   maxAgeDays?: number;
+  candidateSkills?: readonly string[];
 }
 
 const DAY_IN_MS = 24 * 60 * 60 * 1_000;
@@ -51,7 +58,10 @@ export function evaluateQuickFilters(
   options: QuickFilterOptions = {},
 ): QuickFilterResult {
   const now = options.now ?? new Date();
-  const maxAgeDays = Math.max(1, Math.trunc(options.maxAgeDays ?? 45));
+  const maxAgeDays = Math.max(
+    1,
+    Math.trunc(options.maxAgeDays ?? MAX_JOB_AGE_DAYS),
+  );
   const searchableText = fold(
     [job.title, job.company, job.description, job.location]
       .filter(Boolean)
@@ -60,10 +70,17 @@ export function evaluateQuickFilters(
   const rules = [
     companyRule(job.company, preferences.excludedCompanies),
     keywordRule(searchableText, preferences.excludedKeywords),
-    ageRule(job.publishedAt ?? job.discoveredAt, now, maxAgeDays),
+    descriptionRule(job.description),
+    ageRule(job.publishedAt, now, maxAgeDays),
     workModeRule(job.workArrangement, preferences.workModes),
     roleRule(job.title, preferences.desiredRoles),
-    seniorityRule(job.title, preferences.seniorities),
+    seniorityRule(job.title, job.description, preferences.seniorities),
+    technologyRule(
+      job.title,
+      searchableText,
+      preferences.technologies,
+      options.candidateSkills ?? [],
+    ),
     locationRule(job.location, preferences.locations),
   ];
   const decision = rules.some((rule) => rule.status === "REJECT")
@@ -100,17 +117,31 @@ function keywordRule(
 }
 
 function ageRule(
-  referenceDate: Date,
+  publishedAt: Date | null | undefined,
   now: Date,
   maxAgeDays: number,
 ): QuickFilterRule {
+  if (!publishedAt)
+    return review("AGE", "data de publicação não informada pela fonte");
   const age = Math.max(
     0,
-    Math.floor((now.getTime() - referenceDate.getTime()) / DAY_IN_MS),
+    Math.floor((now.getTime() - publishedAt.getTime()) / DAY_IN_MS),
   );
   return age > maxAgeDays
     ? reject("AGE", `vaga tem ${age} dias; limite é ${maxAgeDays}`)
     : pass("AGE", `vaga tem ${age} dia(s)`);
+}
+
+function descriptionRule(
+  description: string | null | undefined,
+): QuickFilterRule {
+  const normalized = description?.trim() ?? "";
+  if (normalized.length < 120)
+    return review(
+      "DESCRIPTION",
+      "descrição insuficiente para analisar os requisitos completos",
+    );
+  return pass("DESCRIPTION", "requisitos completos disponíveis para análise");
 }
 
 function workModeRule(
@@ -137,16 +168,71 @@ function roleRule(title: string, roles: readonly string[]): QuickFilterRule {
 
 function seniorityRule(
   title: string,
+  description: string | null | undefined,
   accepted: readonly string[],
 ): QuickFilterRule {
   if (!accepted.length)
     return pass("SENIORITY", "nenhuma senioridade obrigatória configurada");
-  const seniority = inferSeniority(title);
+  const seniority =
+    inferSeniority(title) ?? inferRequiredSeniority(description ?? "");
   if (!seniority)
     return review("SENIORITY", "senioridade não identificada no título");
   return accepted.includes(seniority)
     ? pass("SENIORITY", "senioridade compatível")
     : reject("SENIORITY", `senioridade incompatível: ${seniority}`);
+}
+
+function inferRequiredSeniority(description: string) {
+  const value = fold(description);
+  const explicit = value.match(
+    /\b(?:senioridade|nivel|level)\s*:?[ ]*(executive|diretor|director|manager|gerente|lead|lider|principal|staff|senior|sr|pleno|mid level|midlevel|junior|jr|estagio|estagiario|intern|internship)\b/,
+  )?.[1];
+  if (explicit) return inferSeniority(explicit);
+
+  const experience = value.match(
+    /\b(?:minimo de |pelo menos |minimum |at least )?(\d+)\+?[ ]+(?:anos|years)(?:[ ]+de|[ ]+of)?[ ]+(?:experiencia|experience)\b/,
+  );
+  const years = experience ? Number(experience[1]) : undefined;
+  if (years === undefined) return undefined;
+  if (years >= 6) return "SENIOR";
+  if (years >= 3) return "MID_LEVEL";
+  if (years >= 1) return "JUNIOR";
+  return "INTERN";
+}
+
+function technologyRule(
+  title: string,
+  searchableText: string,
+  technologies: readonly string[],
+  candidateSkills: readonly string[],
+): QuickFilterRule {
+  if (technologies.length) {
+    const matched = technologies.filter((technology) =>
+      includesTerm(searchableText, technology),
+    );
+    return matched.length
+      ? pass("TECHNOLOGY", `stack compatível: ${matched.join(", ")}`)
+      : reject("TECHNOLOGY", "nenhuma tecnologia principal encontrada na vaga");
+  }
+
+  const requiredByTitle = findKnownTechnologies(title);
+  if (!requiredByTitle.length)
+    return review(
+      "TECHNOLOGY",
+      "stack principal não configurada e título sem tecnologia verificável",
+    );
+  const missing = requiredByTitle.filter(
+    (technology) => !hasTechnology(candidateSkills, technology),
+  );
+  return missing.length
+    ? reject(
+        "TECHNOLOGY",
+        `tecnologia obrigatória ausente no perfil: ${missing.join(", ")}`,
+      )
+    : pass(
+        "TECHNOLOGY",
+        `tecnologias do título confirmadas no perfil: ${requiredByTitle.join(", ")}`,
+      );
 }
 
 function locationRule(

@@ -61,9 +61,10 @@ describe("deterministic job matching", () => {
       now,
     );
 
-    expect(result.score).toBe(10);
+    expect(result.score).toBe(0);
     expect(result.classification).toBe("COLD");
-    expect(result.evaluatedWeight).toBe(10);
+    expect(result.evaluatedWeight).toBe(0);
+    expect(result.breakdown.recency).toEqual({ earned: 0, available: 0 });
     expect(result.breakdown.skills.available).toBe(0);
   });
 

@@ -123,9 +123,10 @@ export default async function PreferencesPage({
         />
         <ListField
           defaultValue={asLines(preference?.technologies)}
-          label="Tecnologias desejadas"
+          help="Use somente a stack principal. Quando preenchida, ao menos uma dessas tecnologias deve aparecer na vaga."
+          label="Tecnologias principais"
           name="technologies"
-          placeholder={"TypeScript\nPostgreSQL"}
+          placeholder={"Java\nNode.js\nReact"}
         />
         <label className="text-sm font-medium">
           Salário mínimo
@@ -274,11 +275,13 @@ export default async function PreferencesPage({
 
 function ListField({
   defaultValue,
+  help,
   label,
   name,
   placeholder,
 }: {
   defaultValue: string;
+  help?: string;
   label: string;
   name: string;
   placeholder: string;
@@ -294,7 +297,7 @@ function ListField({
         placeholder={placeholder}
       />
       <span className="mt-1 block text-xs font-normal text-slate-500">
-        Um item por linha.
+        {help ?? "Um item por linha."}
       </span>
     </label>
   );

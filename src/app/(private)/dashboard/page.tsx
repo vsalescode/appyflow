@@ -9,6 +9,7 @@ import { readSessionCookie } from "@/infrastructure/auth/cookie";
 const categories = [
   { value: "ALL", label: "Todas" },
   { value: "NEW", label: "Novas" },
+  { value: "REVIEW", label: "Revisar" },
   { value: "HOT", label: "Quentes" },
   { value: "WARM", label: "Mornas" },
   { value: "COLD", label: "Frias" },
@@ -79,7 +80,17 @@ export default async function DashboardPage({
         </Notice>
       ) : null}
 
-      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {!dashboard.hasPrimaryTechnologies ? (
+        <Notice tone="warning">
+          Defina suas tecnologias principais em{" "}
+          <Link className="font-semibold underline" href="/preferencias">
+            Preferências
+          </Link>{" "}
+          para eliminar vagas de stacks incompatíveis.
+        </Notice>
+      ) : null}
+
+      <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-6">
         {categories.map((category) => (
           <Link
             className={`group rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
@@ -170,7 +181,11 @@ export default async function DashboardPage({
                       {job.company ?? "Empresa não informada"}
                     </p>
                   </div>
-                  {job.match ? (
+                  {job.filterDecision === "REVIEW" ? (
+                    <span className="shrink-0 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
+                      Revisar
+                    </span>
+                  ) : job.match ? (
                     <span
                       className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${classificationStyle[job.match.classification]}`}
                     >

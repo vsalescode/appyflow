@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { calculateDeterministicMatch } from "@/domain/job/deterministic-match";
 import { evaluateQuickFilters } from "@/domain/job/quick-filter";
+import { confirmedKnownTechnologies } from "@/domain/job/technology";
 import { Prisma } from "@/generated/prisma/client";
 import { getPrismaClient } from "@/infrastructure/database/prisma";
 
@@ -37,16 +38,30 @@ export async function calculateAndStoreDeterministicMatches(
     excludedKeywords: [],
   };
   const now = clock();
-  const skills = [
-    ...profile.professionalFacts.map((fact) => fact.title),
-    ...preference.technologies,
-  ];
+  const confirmedSkills = profile.professionalFacts.map((fact) => fact.title);
+  const skills = preference.technologies.length
+    ? preference.technologies
+    : confirmedKnownTechnologies(confirmedSkills);
   let matched = 0;
   let skipped = 0;
 
   for (const job of profile.jobs) {
-    const filters = evaluateQuickFilters(job, preference, { now });
+    const filters = evaluateQuickFilters(job, preference, {
+      now,
+      candidateSkills: confirmedSkills,
+    });
+    const filterData = {
+      filterDecision: filters.decision,
+      filterRules: JSON.parse(
+        JSON.stringify(filters.rules),
+      ) as Prisma.InputJsonValue,
+      filteredAt: now,
+    };
     if (filters.decision === "REJECTED") {
+      await prisma.$transaction([
+        prisma.job.update({ where: { id: job.id }, data: filterData }),
+        prisma.jobMatch.deleteMany({ where: { jobId: job.id } }),
+      ]);
       skipped += 1;
       continue;
     }
@@ -73,21 +88,24 @@ export async function calculateAndStoreDeterministicMatches(
       reasons: result.reasons,
       calculatedAt: now,
     };
-    await prisma.jobMatch.upsert({
-      where: { jobId: job.id },
-      create: {
-        id: randomUUID(),
-        jobId: job.id,
-        ...matchData,
-      },
-      update: {
-        ...matchData,
-        aiAnalysis: Prisma.DbNull,
-        aiModel: null,
-        aiRequestId: null,
-        aiAnalyzedAt: null,
-      },
-    });
+    await prisma.$transaction([
+      prisma.job.update({ where: { id: job.id }, data: filterData }),
+      prisma.jobMatch.upsert({
+        where: { jobId: job.id },
+        create: {
+          id: randomUUID(),
+          jobId: job.id,
+          ...matchData,
+        },
+        update: {
+          ...matchData,
+          aiAnalysis: Prisma.DbNull,
+          aiModel: null,
+          aiRequestId: null,
+          aiAnalyzedAt: null,
+        },
+      }),
+    ]);
     matched += 1;
   }
   return { matched, skipped };

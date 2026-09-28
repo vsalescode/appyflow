@@ -61,7 +61,7 @@ export function calculateDeterministicMatch(
     ),
     workMode: filterComponent(filters, "WORK_MODE", context.hasWorkModes, 10),
     location: filterComponent(filters, "LOCATION", context.hasLocations, 5),
-    recency: recencyComponent(job.publishedAt ?? job.discoveredAt, now),
+    recency: recencyComponent(job.publishedAt, now),
   };
   const totals = Object.values(breakdown).reduce(
     (total, item) => ({
@@ -84,7 +84,14 @@ export function calculateDeterministicMatch(
         : "skills não avaliadas por falta de dados confirmados",
       ...filters.rules
         .filter((rule) =>
-          ["ROLE", "SENIORITY", "WORK_MODE", "LOCATION"].includes(rule.code),
+          [
+            "DESCRIPTION",
+            "ROLE",
+            "SENIORITY",
+            "TECHNOLOGY",
+            "WORK_MODE",
+            "LOCATION",
+          ].includes(rule.code),
         )
         .map((rule) => rule.reason),
     ],
@@ -105,7 +112,8 @@ function filterComponent(
   );
 }
 
-function recencyComponent(reference: Date, now: Date) {
+function recencyComponent(reference: Date | null | undefined, now: Date) {
+  if (!reference) return component(0, 0);
   const days = Math.max(
     0,
     Math.floor((now.getTime() - reference.getTime()) / DAY_IN_MS),

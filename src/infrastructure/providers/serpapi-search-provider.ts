@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ProviderHealth } from "@/application/providers/provider-health";
+import { MAX_JOB_AGE_DAYS } from "@/domain/job/freshness";
 import {
   SearchProviderError,
   type SearchProvider,
@@ -45,7 +46,6 @@ const searchResponseSchema = z.object({
 
 type Fetch = typeof fetch;
 const DAY_IN_MS = 24 * 60 * 60 * 1_000;
-const MAX_JOB_AGE_DAYS = 30;
 
 export class SerpApiSearchProvider implements SearchProvider {
   readonly name = "serpapi";
@@ -89,27 +89,32 @@ export class SerpApiSearchProvider implements SearchProvider {
     }
 
     const now = this.clock();
-    const items = parsed.data.jobs_results
-      .filter((item) => item.apply_options.length > 0)
-      .map((item) => {
-        const apply = selectApplyOption(item.apply_options, item.via);
-        const publishedAt = parseRelativePublishedAt(
-          item.detected_extensions?.posted_at,
-          now,
-        );
-        return {
-          title: item.title,
-          url: apply.link,
-          snippet: item.description,
-          displayedUrl: apply.title,
-          publishedAt:
-            publishedAt?.toISOString() ?? item.detected_extensions?.posted_at,
-          company: item.company_name,
-          location: item.location,
-          publishedDate: publishedAt,
-          isLinkedIn: isLinkedInOption(apply),
-        };
-      })
+    const enrichedItems = await Promise.all(
+      parsed.data.jobs_results
+        .filter((item) => item.apply_options.length > 0)
+        .map(async (item) => {
+          const apply = selectApplyOption(item.apply_options, item.via);
+          const detectedPublishedAt = parseRelativePublishedAt(
+            item.detected_extensions?.posted_at,
+            now,
+          );
+          const publishedAt =
+            detectedPublishedAt ?? (await this.fetchPublishedAt(apply.link));
+          return {
+            title: item.title,
+            url: apply.link,
+            snippet: item.description,
+            displayedUrl: apply.title,
+            publishedAt:
+              publishedAt?.toISOString() ?? item.detected_extensions?.posted_at,
+            company: item.company_name,
+            location: item.location,
+            publishedDate: publishedAt,
+            isLinkedIn: isLinkedInOption(apply),
+          };
+        }),
+    );
+    const items = enrichedItems
       .filter(
         (item) =>
           !item.publishedDate ||
@@ -180,6 +185,96 @@ export class SerpApiSearchProvider implements SearchProvider {
       }
     }
     throw new SearchProviderError("upstream");
+  }
+
+  private async fetchPublishedAt(value: string) {
+    if (!isSafePublicHttpUrl(value)) return undefined;
+    try {
+      const response = await this.fetchImplementation(value, {
+        headers: { accept: "text/html,application/xhtml+xml" },
+        redirect: "manual",
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!response.ok) return undefined;
+      const length = Number(response.headers.get("content-length") ?? 0);
+      if (length > 2_000_000) return undefined;
+      return extractJobPostingPublishedAt(await response.text());
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+export function extractJobPostingPublishedAt(html: string) {
+  const scripts = html.matchAll(
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  );
+  for (const match of scripts) {
+    try {
+      const date = findJobPostingDate(JSON.parse(match[1] ?? "null"));
+      if (date) return date;
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+}
+
+function findJobPostingDate(value: unknown): Date | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findJobPostingDate(item);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const types = Array.isArray(record["@type"])
+    ? record["@type"]
+    : [record["@type"]];
+  if (types.includes("JobPosting") && typeof record.datePosted === "string") {
+    const date = new Date(record.datePosted);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  for (const child of Object.values(record)) {
+    const found = findJobPostingDate(child);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function isSafePublicHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (
+      hostname === "localhost" ||
+      hostname.endsWith(".local") ||
+      hostname === "::1" ||
+      hostname.startsWith("fc") ||
+      hostname.startsWith("fd") ||
+      hostname.startsWith("fe80:") ||
+      hostname.startsWith("::ffff:")
+    )
+      return false;
+    const octets = hostname.split(".").map(Number);
+    if (octets.length !== 4 || octets.some((item) => Number.isNaN(item)))
+      return true;
+    return !(
+      octets[0] === 0 ||
+      octets[0] === 10 ||
+      octets[0] === 127 ||
+      (octets[0] === 100 &&
+        (octets[1] ?? 0) >= 64 &&
+        (octets[1] ?? 0) <= 127) ||
+      (octets[0] === 169 && octets[1] === 254) ||
+      (octets[0] === 172 && (octets[1] ?? 0) >= 16 && (octets[1] ?? 0) <= 31) ||
+      (octets[0] === 192 && octets[1] === 168)
+    );
+  } catch {
+    return false;
   }
 }
 

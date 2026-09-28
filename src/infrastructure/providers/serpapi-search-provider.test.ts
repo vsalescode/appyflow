@@ -4,10 +4,23 @@ import { SearchProviderError } from "@/application/providers/search-provider";
 
 import {
   SerpApiSearchProvider,
+  extractJobPostingPublishedAt,
   parseRelativePublishedAt,
 } from "./serpapi-search-provider";
 
 describe("SerpApiSearchProvider", () => {
+  it("extrai datePosted de metadados estruturados da pÃ¡gina", () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      datePosted: "2026-08-22T00:51:18.000Z",
+    })}</script>`;
+
+    expect(extractJobPostingPublishedAt(html)?.toISOString()).toBe(
+      "2026-08-22T00:51:18.000Z",
+    );
+  });
+
   it("converte datas relativas em português e inglês", () => {
     const now = new Date("2026-09-24T12:00:00.000Z");
     expect(parseRelativePublishedAt("há 2 dias", now)?.toISOString()).toBe(
@@ -16,6 +29,9 @@ describe("SerpApiSearchProvider", () => {
     expect(parseRelativePublishedAt("3 weeks ago", now)?.toISOString()).toBe(
       "2026-09-03T12:00:00.000Z",
     );
+    expect(
+      parseRelativePublishedAt("h\u00e1 1 m\u00eas", now)?.toISOString(),
+    ).toBe("2026-08-25T12:00:00.000Z");
     expect(parseRelativePublishedAt("hoje", now)?.toISOString()).toBe(
       now.toISOString(),
     );
@@ -55,7 +71,7 @@ describe("SerpApiSearchProvider", () => {
             {
               title: "Old Backend Engineer",
               company_name: "Old Example",
-              detected_extensions: { posted_at: "45 days ago" },
+              detected_extensions: { posted_at: "1 month ago" },
               apply_options: [
                 {
                   title: "LinkedIn",
@@ -108,6 +124,48 @@ describe("SerpApiSearchProvider", () => {
       location: "Brazil",
       hl: "pt-br",
     });
+  });
+
+  it("consulta a pÃ¡gina da vaga quando o provider omite a data", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            jobs_results: [
+              {
+                title: "Desenvolvedor Backend",
+                company_name: "Example",
+                description: "Backend role",
+                apply_options: [
+                  {
+                    title: "LinkedIn",
+                    link: "https://br.linkedin.com/jobs/view/123",
+                  },
+                ],
+                job_id: "job-without-date",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          '<script type="application/ld+json">{"@type":"JobPosting","datePosted":"2026-08-22T00:51:18.000Z"}</script>',
+          { status: 200, headers: { "content-type": "text/html" } },
+        ),
+      );
+    const provider = new SerpApiSearchProvider(
+      "secret",
+      fetchMock,
+      () => new Date("2026-09-28T12:00:00.000Z"),
+    );
+
+    await expect(
+      provider.search({ query: "backend", limit: 10 }),
+    ).resolves.toEqual({ items: [], requestId: undefined });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("repete uma vez após falha transitória", async () => {

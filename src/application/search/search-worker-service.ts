@@ -35,6 +35,10 @@ interface SearchWorkerDependencies {
     items: readonly SearchResultItem[],
   ) => Promise<NormalizationSummary>;
   match: (userId: string) => Promise<{ matched: number; skipped: number }>;
+  recordQueryRun?: (
+    queryId: string,
+    result: { succeeded: boolean; resultsFound: number },
+  ) => Promise<unknown>;
 }
 
 export interface SearchWorkerFailure {
@@ -56,8 +60,8 @@ function defaultDependencies(): SearchWorkerDependencies {
       getPrismaClient()
         .searchQuery.findMany({
           where: options.userId
-            ? { profile: { userId: options.userId } }
-            : undefined,
+            ? { profile: { userId: options.userId }, isActive: true }
+            : { isActive: true },
           select: {
             id: true,
             query: true,
@@ -71,7 +75,10 @@ function defaultDependencies(): SearchWorkerDependencies {
               },
             },
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: [
+            { lastSearchedAt: { sort: "asc", nulls: "first" } },
+            { createdAt: "asc" },
+          ],
           take: options.maxQueries,
         })
         .then((queries) =>
@@ -90,6 +97,16 @@ function defaultDependencies(): SearchWorkerDependencies {
         ),
     normalize: normalizeAndStoreSearchResults,
     match: calculateAndStoreDeterministicMatches,
+    recordQueryRun: (queryId, result) =>
+      getPrismaClient().searchQuery.update({
+        where: { id: queryId },
+        data: {
+          lastSearchedAt: new Date(),
+          searchCount: { increment: 1 },
+          successCount: { increment: result.succeeded ? 1 : 0 },
+          totalResults: { increment: result.resultsFound },
+        },
+      }),
   };
 }
 
@@ -122,9 +139,17 @@ export async function runSearchWorker(
       items = result.items;
       summary.results.found += items.length;
     } catch (error) {
+      await dependencies.recordQueryRun?.(query.id, {
+        succeeded: false,
+        resultsFound: 0,
+      });
       recordFailure(summary, "search", query.id, error);
       continue;
     }
+    await dependencies.recordQueryRun?.(query.id, {
+      succeeded: true,
+      resultsFound: items.length,
+    });
 
     try {
       const normalized = await dependencies.normalize(

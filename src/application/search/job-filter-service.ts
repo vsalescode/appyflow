@@ -14,6 +14,10 @@ export async function listQuickFilteredJobs(
     where: { userId },
     include: {
       preference: true,
+      professionalFacts: {
+        where: { type: "SKILL", reviewStatus: "CONFIRMED" },
+        select: { title: true },
+      },
       jobs: { orderBy: { discoveredAt: "desc" } },
     },
   });
@@ -24,12 +28,18 @@ export async function listQuickFilteredJobs(
     seniorities: [],
     workModes: [],
     locations: [],
+    technologies: [],
     excludedCompanies: [],
     excludedKeywords: [],
   };
   const evaluated = profile.jobs.map((job) => ({
     job,
-    filter: evaluateQuickFilters(job, preferences, options),
+    filter: evaluateQuickFilters(job, preferences, {
+      ...options,
+      candidateSkills:
+        options.candidateSkills ??
+        profile.professionalFacts.map((fact) => fact.title),
+    }),
   }));
 
   return decision
